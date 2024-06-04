@@ -1,3 +1,5 @@
+SKIP_VERSION=true
+
 ifndef VERBOSE
 .SILENT:
 endif
