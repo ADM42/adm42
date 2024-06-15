@@ -32,6 +32,7 @@ static union {
         int pending_shift : 2;
         bool opposite_mods_as_tap : 1;
         int compose_ralt: 2; // F19, R_ALT, R_ALT + R_ALT => L_ALT, DISABLED
+        bool error_reduction: 1;
     };
 } user_config;
 
@@ -102,6 +103,7 @@ enum custom_keycodes {
     PEN_SHFT,
     OPP_TOGG,
     COMP_SEL,
+    ERE_TOGG,
 };
 
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
@@ -166,7 +168,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     ),
     [_SETUP] = LAYOUT_3x12_6(
             REFLASH, XXXXXXX, DF_COMK, XXXXXXX, XXXXXXX, XXXXXXX, PEN_WIN, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, ADM_INF,
-            XXXXXXX, DF_QWER, DF_CODH, DF_DVRK, DF_CUST, XXXXXXX, PEN_CTRL, OPP_TOGG, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX,
+            XXXXXXX, DF_QWER, DF_CODH, DF_DVRK, DF_CUST, XXXXXXX, PEN_CTRL, OPP_TOGG, ERE_TOGG, XXXXXXX, XXXXXXX, XXXXXXX,
             XXXXXXX, XXXXXXX, DF_COMX, XXXXXXX, XXXXXXX, XXXXXXX, PEN_SHFT, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, EE_CLR,
                                        XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX,   XXXXXXX, COMP_SEL
     ),
@@ -180,6 +182,19 @@ void print_keyboard(const char *msg) {
     unregister_mods(mod_state);
     send_string(msg);
     register_mods(mod_state);
+}
+
+// Store the key currently pressed (if any) by each finger (except thumbs)
+static uint8_t finger_key[8] = {0};
+// Stats
+static uint16_t finger_errors = 0;
+static uint16_t finger_total = 0;
+
+// Return the finger associated with standard keys
+uint8_t get_finger(uint8_t row, uint8_t col) {
+    if (row > 2 || col > 10) return 0;
+    if (col <= 4) return col;
+    return col - (col > 6 ? 2 : 1);
 }
 
 /*
@@ -587,6 +602,17 @@ void adm_info(void) {
         PK("DISABLED\n");
     }
 
+    PK("* Error Reduction: ");
+    if (user_config.error_reduction) {
+        PK("ENABLED (errors/total:");
+        PK(get_u16_str(finger_errors, ' '));
+        PK("/");
+        PK(get_u16_str(finger_total, ' '));
+        PK(")\n");
+    } else {
+        PK("DISABLED\n");
+    }
+
     PK("* Compose key: ");
     if (user_config.compose_ralt == 3) {
         PK("DISABLED\n");
@@ -785,6 +811,31 @@ void lt_release(uint16_t key) {
 }
 
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
+
+    if (user_config.error_reduction) {
+        uint8_t finger = get_finger(record->event.key.row, record->event.key.col);
+        if (finger) {
+            if (record->event.pressed) {
+                if (finger_key[finger - 1]) {
+                    finger_errors++;
+                    return false;
+                } else {
+                    if (finger_total == 65535) {
+                        finger_total = 0;
+                        finger_errors = 0;
+                    }
+                    finger_total++;
+                    finger_key[finger - 1] = (uint8_t)(record->event.key.row * MATRIX_COLS + record->event.key.col + 1);
+                }
+            } else {
+                if (finger_key[finger - 1] == record->event.key.row * MATRIX_COLS + record->event.key.col + 1) {
+                    finger_key[finger - 1] = 0;
+                } else {
+                    return false;
+                }
+            }
+        }
+    }
 
     if (record->event.pressed) {
         if (rgb_wpm_enabled) rgb_val_increase();
@@ -1012,6 +1063,14 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
             rgb_wpm_disable();
             return true;
         }
+    } else {
+        switch (keycode) {
+        // on release to avoid considering the activation key itself as a mistake
+        case ERE_TOGG:
+            user_config.error_reduction ^= 1;
+            eeconfig_update_user(user_config.raw);
+            return false;
+        }
     }
 
     if (record->event.pressed) {
@@ -1084,6 +1143,7 @@ void eeconfig_init_user(void) {
     user_config.pending_shift = 1;
     user_config.opposite_mods_as_tap = 1;
     user_config.compose_ralt = 0;
+    user_config.error_reduction = 0;
     eeconfig_update_user(user_config.raw);
 }
 
