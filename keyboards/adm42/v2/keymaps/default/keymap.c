@@ -64,7 +64,6 @@ enum custom_keycodes {
     RC_QUT,
     RC_SCLN,
     RC_SLSH,
-    /* RC_UNDS, */
     RS_SPC,
     LC_CIRC,
     RC_DLR,
@@ -103,7 +102,6 @@ enum custom_keycodes {
     PEN_SHFT,
     OPP_TOGG,
     COMP_SEL,
-
 };
 
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
@@ -197,7 +195,7 @@ typedef struct {
     uint16_t mod;
     uint16_t tap;
     bool left; // Physical side on the keyboard, for Opposite MODs as TAP
-    bool force_shift; // If true, always tap the tap key with SHIFT
+    bool force_shift; // If true, SHIFT the tap key
     bool pending_mod; // If true, this mode is allowed to be pending
 
     // Contexts for immediate tap
@@ -234,8 +232,6 @@ static modtap modtaps[] = {
     {.mod = KC_RCTL, .tap = KC_SCLN, .context_overlap = true, .context_previous = true, },
     // RC_SLSH
     {.mod = KC_RCTL, .tap = KC_SLSH, .context_overlap = true, .context_previous = true, },
-    // RC_UNDS
-    /* {.mod = KC_UNDS, .tap = KC_SCLN, .context_overlap = true, .context_previous = true, }, */
     // RS_SPC
     {.mod = KC_RSFT, .tap = KC_SPC, .context_overlap = true, .context_previous = true, },
 
