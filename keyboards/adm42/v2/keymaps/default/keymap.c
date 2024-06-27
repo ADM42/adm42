@@ -141,11 +141,11 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
             KC_LALT, KC_SCLN, KC_Q,    KC_J,    KC_K,    KC_X,    KC_B,    KC_M,    KC_W,    KC_V,    KC_Z,    LOR_ALT,
                                        LLS_ESC, LS_BPC,  LLA_DEL, LLE_ENT, RS_SPC,  LLS_COMP
     ),
-    // Set your custom layout here!
+    // WORKMAN
     [_CUSTOM] = LAYOUT_3x12_6(
-            LW_GRV,  KC_Q,    KC_W,    KC_D,    KC_F,    KC_P,    KC_K,    KC_L,    KC_U,    KC_Y,    KC_QUOT, RW_EQU,
-            LC_TAB,  KC_A,    KC_R,    KC_S,    KC_T,    KC_G,    KC_H,    KC_N,    KC_E,    KC_O,    KC_I,    RC_SCLN,
-            KC_LALT, KC_Z,    KC_X,    KC_C,    KC_V,    KC_B,    KC_J,    KC_M,    KC_COMM, KC_DOT,  KC_SLSH, LOR_ALT,
+            LW_GRV,  KC_Q,    KC_D,    KC_R,    KC_W,    KC_B,    KC_J,    KC_F,    KC_U,    KC_P,    KC_SCLN, RW_EQU,
+            LC_TAB,  KC_A,    KC_S,    KC_H,    KC_T,    KC_G,    KC_Y,    KC_N,    KC_E,    KC_O,    KC_I,    RC_QUT,
+            KC_LALT, KC_Z,    KC_X,    KC_M,    KC_C,    KC_V,    KC_K,    KC_L,    KC_COMM, KC_DOT,  KC_SLSH, LOR_ALT,
                                        LLS_ESC, LS_BPC,  LLA_DEL, LLE_ENT, RS_SPC,  LLS_COMP
     ),
     [_SPECIAL] = LAYOUT_3x12_6(
@@ -572,7 +572,7 @@ void adm_info(void) {
         PK("Dvorak\n");
         break;
      case _CUSTOM:
-        PK("CUSTOM\n");
+        PK("Workman\n");
         break;
     }
 
