@@ -1018,10 +1018,10 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
             rgb_wpm_toggle();
             return false;
          case RGB_VAD:
-            if (rgb_val >= RGB_MATRIX_VAL_STEP) {
+            if (rgb_val >= (2 * RGB_MATRIX_VAL_STEP)) {
                 rgb_val -= RGB_MATRIX_VAL_STEP;
             } else {
-                rgb_val = 0;
+                rgb_val = RGB_MATRIX_VAL_STEP;
             }
             rgb_wpm_disable();
             rgb_set_val(rgb_val);
