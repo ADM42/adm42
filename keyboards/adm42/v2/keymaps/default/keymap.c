@@ -202,7 +202,7 @@ uint8_t get_finger(uint8_t row, uint8_t col) {
  * - Pending
  * - Context-aware
  * - Opposite MODS as TAP
- * - Rolling support
+ * - Support modded TAP symbols
  */
 
 typedef struct {
@@ -210,8 +210,8 @@ typedef struct {
     uint16_t mod;
     uint16_t tap;
     bool left; // Physical side on the keyboard, for Opposite MODs as TAP
-    bool force_shift; // If true, SHIFT the tap key
     bool pending_mod; // If true, this mode is allowed to be pending
+    uint8_t mods; // MODs that have to be added to the TAP
 
     // Contexts for immediate tap
     bool context_overlap; // A (tap) key is currently pressed
@@ -219,11 +219,9 @@ typedef struct {
 
     // State
     uint16_t time; // Physical keypress time
-    // If shift was enabled at physical press time, that means the user wants
-    // the shifted version of the key
-    bool shifted;
     uint16_t pressed; // kc pressed, in order to release the same one
     bool mod_used; // If the mod has been «used» by a tap key
+    uint8_t final_mods; // mods + eventually shift at press time
 } modtap;
 
 // Keys configuration
@@ -253,9 +251,9 @@ static modtap modtaps[] = {
     // Special layer keys
 
     // LC_CIRC ^
-    {.mod = KC_LCTL, .tap = KC_6, .left = true, .force_shift = true},
+    {.mod = KC_LCTL, .tap = KC_6, .left = true, .mods = MOD_BIT(KC_LSFT)},
     // RC_DLR $
-    {.mod = KC_RCTL, .tap = KC_4, .force_shift = true},
+    {.mod = KC_RCTL, .tap = KC_4, .mods = MOD_BIT(KC_LSFT)},
     // RW_BS
     {.mod = KC_RWIN, .tap = KC_BSLS},
 
@@ -339,20 +337,19 @@ bool is_shiftable(uint16_t kc) {
 
 void clean_modtap_state(uint16_t key) {
     MODTAP(key).time = 0;
-    MODTAP(key).shifted = false;
+    MODTAP(key).final_mods = MODTAP(key).mods;
     MODTAP(key).pressed = 0;
     MODTAP(key).mod_used = false;
 }
 
-void mod_used(bool super, bool ctrl, bool shift) {
+void mod_used(bool shift, bool nonshift) {
     for (int i = 0; i < sizeof(modtaps) / sizeof(modtap); i++) {
         if (!modtaps[i].mod_used && modtaps[i].pressed == modtaps[i].mod) {
             uint16_t mod = modtaps[i].mod;
             if (
-                    (super && (mod == KC_LWIN || mod == KC_RWIN)) ||
-                    (ctrl && (mod == KC_LCTL || mod == KC_RCTL)) ||
-                    (shift && (mod == KC_LSFT || mod == KC_RSFT))
-                 ) {
+                (nonshift && (MOD_BIT(mod) & (MOD_MASK_GUI | MOD_MASK_CTRL | MOD_MASK_ALT))) ||
+                (shift && (MOD_BIT(mod) & MOD_MASK_SHIFT))
+            ) {
                 modtaps[i].mod_used = true;
             }
         }
@@ -432,13 +429,6 @@ void mt_register_mod(uint16_t key) {
     }
 }
 
-void mt_register_tap_kc(uint16_t key, uint16_t kc) {
-    MODTAP(key).pressed = kc;
-    register_code(kc);
-    last_tap_info(kc, MODTAP(key).time);
-    mod_used(true, true, false);
-}
-
 void mt_register_tap(uint16_t key) {
     if (retained_mod_key == key) {
         retained_mod_key = 0;
@@ -447,23 +437,22 @@ void mt_register_tap(uint16_t key) {
         unregister_code(MODTAP(key).mod);
     }
     uint16_t kc = MODTAP(key).tap;
-
     if (MODTAP(key).pressed != kc) {
+        add_weak_mods(MODTAP(key).final_mods);
+
         mod_state = get_mods();
-        bool shift_state = mod_state & MOD_MASK_SHIFT;
-        if (MODTAP(key).force_shift && !shift_state) {
-            add_weak_mods(MOD_BIT(KC_LSFT));
-            mt_register_tap_kc(key, kc);
-        } else if (MODTAP(key).shifted && !shift_state) {
-            add_weak_mods(MOD_BIT(KC_LSFT));
-            mt_register_tap_kc(key, kc);
-        } else if (shift_state && !MODTAP(key).shifted && !MODTAP(key).force_shift) {
-            del_mods(MOD_MASK_SHIFT);
-            mt_register_tap_kc(key, kc);
-            set_mods(mod_state);
-        } else {
-            mt_register_tap_kc(key, kc);
-        }
+        // The symbol was not shifted initially (when pressed) but now SHIFT is active
+        bool remove_shift = (mod_state & MOD_MASK_SHIFT) && !(MODTAP(key).final_mods & MOD_MASK_SHIFT);
+        if (remove_shift) del_mods(MOD_MASK_SHIFT);
+
+        MODTAP(key).pressed = kc;
+        register_code(kc);
+        last_tap_info(kc, MODTAP(key).time);
+        mod_used(false, true);
+
+        if (remove_shift) set_mods(mod_state);
+
+        clear_weak_mods();
     }
 }
 
@@ -488,7 +477,7 @@ void delayed_prepare(uint16_t kc) {
 void delayed_tap(void) {
     register_code(delayed_kc);
     last_tap_info(delayed_kc, delayed_time);
-    mod_used(true, true, true);
+    mod_used(true, true);
     delayed_kc = 0;
 }
 void delayed_check(void) {
@@ -510,8 +499,9 @@ void mt_press(uint16_t key) {
     MODTAP(key).time = timer_read();
 
     if (get_mods() & MOD_MASK_SHIFT) {
-        MODTAP(key).shifted = true;
-        mod_used(false, false, true);
+        // Store the SHIFT state at keypress if the tap is delayed
+        MODTAP(key).final_mods |= (get_mods() & MOD_MASK_SHIFT);
+        mod_used(true, false);
     }
 
     if (check_tap_context(key)) {
@@ -783,8 +773,7 @@ void lt_press(uint16_t key) {
         register_code(kc);
         caps_word_stop();
         last_tap_info(kc, timer_read());
-        mod_used(true, true, true);
-
+        mod_used(true, true);
     } else {
         LAYERTAP(key).tapped = false;
         layer_on(LAYERTAP(key).layer);
@@ -804,7 +793,7 @@ void lt_release(uint16_t key) {
             tap_code(kc);
             caps_word_stop();
             last_tap_info(kc, p_current_time);
-            mod_used(true, true, true);
+            mod_used(true, true);
             last_tap_release_info();
         }
     }
@@ -930,7 +919,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     if (keycode != KC_LALT && keycode != KC_RALT && keycode != LOR_ALT && keycode != COMPOSE) { 
         if (record->event.pressed) {
             last_tap_info(keycode, record->event.time);
-            mod_used(true, true, true);
+            mod_used(true, true);
         } else {
             last_tap_release_info();
         }
