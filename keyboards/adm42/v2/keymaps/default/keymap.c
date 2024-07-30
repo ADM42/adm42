@@ -20,6 +20,8 @@
 #include <rgb_matrix.h>
 extern void rgb_matrix_update_pwm_buffers(void);
 
+#include <os_detection.h>
+
 // Base for timming computations
 static uint8_t tapping_term = 200;
 
@@ -29,9 +31,10 @@ static union {
     struct {
         int pending_win : 2;
         int pending_ctrl : 2;
+        int pending_alt : 2;
         int pending_shift : 2;
         bool opposite_mods_as_tap : 1;
-        int compose_ralt: 2; // F19, R_ALT, R_ALT + R_ALT => L_ALT, DISABLED
+        int compose_ralt: 2; // DISABLED, F19, R_ALT
         bool error_reduction: 1;
     };
 } user_config;
@@ -66,11 +69,13 @@ enum custom_keycodes {
     RC_SCLN,
     RC_SLSH,
     RS_SPC,
+    LW_F11,
+    RW_F12,
     LC_CIRC,
     RC_DLR,
     RW_BS,
-    LW_F11,
-    RW_F12,
+    LA_ZOUT,
+    RA_ZIN,
     LAST_DUAL, // do not remove
 
     // Custom layer keys
@@ -82,7 +87,6 @@ enum custom_keycodes {
     LAST_LAYER, // do not remove
 
     COMPOSE,
-    LOR_ALT,
     CWD_TOG,
 
     KGB_WHT,
@@ -100,6 +104,7 @@ enum custom_keycodes {
     ADM_INF,
     PEN_WIN,
     PEN_CTRL,
+    PEN_ALT,
     PEN_SHFT,
     OPP_TOGG,
     COMP_SEL,
@@ -110,25 +115,25 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [_QWERTY] = LAYOUT_3x12_6(
             LW_GRV,  KC_Q,    KC_W,    KC_E,    KC_R,    KC_T,    KC_Y,    KC_U,    KC_I,    KC_O,    KC_P,    RW_EQU,
             LC_TAB,  KC_A,    KC_S,    KC_D,    KC_F,    KC_G,    KC_H,    KC_J,    KC_K,    KC_L,    KC_SCLN, RC_QUT,
-            KC_LALT, KC_Z,    KC_X,    KC_C,    KC_V,    KC_B,    KC_N,    KC_M,    KC_COMM, KC_DOT,  KC_SLSH, LOR_ALT,
+            LA_ZOUT, KC_Z,    KC_X,    KC_C,    KC_V,    KC_B,    KC_N,    KC_M,    KC_COMM, KC_DOT,  KC_SLSH, RA_ZIN,
                                        LLS_ESC, LS_BPC,  LLA_DEL, LLE_ENT, RS_SPC,  LLS_COMP
     ),
     [_COLEMAKDH] = LAYOUT_3x12_6(
             LW_GRV,  KC_Q,    KC_W,    KC_F,    KC_P,    KC_B,    KC_J,    KC_L,    KC_U,    KC_Y,    KC_SCLN, RW_EQU,
             LC_TAB,  KC_A,    KC_R,    KC_S,    KC_T,    KC_G,    KC_M,    KC_N,    KC_E,    KC_I,    KC_O,    RC_QUT,
-            KC_LALT, KC_Z,    KC_X,    KC_C,    KC_D,    KC_V,    KC_K,    KC_H,    KC_COMM, KC_DOT,  KC_SLSH, LOR_ALT,
+            LA_ZOUT, KC_Z,    KC_X,    KC_C,    KC_D,    KC_V,    KC_K,    KC_H,    KC_COMM, KC_DOT,  KC_SLSH, RA_ZIN,
                                        LLS_ESC, LS_BPC,  LLA_DEL, LLE_ENT, RS_SPC,  LLS_COMP
     ),
     [_COLEMAX] = LAYOUT_3x12_6(
             LW_GRV,  KC_Q,    KC_W,    KC_F,    KC_P,    KC_G,    KC_K,    KC_L,    KC_U,    KC_Y,    KC_QUOT, RW_EQU,
             LC_TAB,  KC_A,    KC_R,    KC_S,    KC_T,    KC_D,    KC_H,    KC_N,    KC_E,    KC_I,    KC_O,    RC_SCLN,
-            KC_LALT, KC_Z,    KC_X,    KC_C,    KC_V,    KC_B,    KC_J,    KC_M,    KC_COMM, KC_DOT,  KC_SLSH, LOR_ALT,
+            LA_ZOUT, KC_Z,    KC_X,    KC_C,    KC_V,    KC_B,    KC_J,    KC_M,    KC_COMM, KC_DOT,  KC_SLSH, RA_ZIN,
                                        LLS_ESC, LS_BPC,  LLA_DEL, LLE_ENT, RS_SPC,  LLS_COMP
     ),
     [_COLEMAK] = LAYOUT_3x12_6(
             LW_GRV,  KC_Q,    KC_W,    KC_F,    KC_P,    KC_G,    KC_J,    KC_L,    KC_U,    KC_Y,    KC_SCLN, RW_EQU,
             LC_TAB,  KC_A,    KC_R,    KC_S,    KC_T,    KC_D,    KC_H,    KC_N,    KC_E,    KC_I,    KC_O,    RC_QUT,
-            KC_LALT, KC_Z,    KC_X,    KC_C,    KC_V,    KC_B,    KC_K,    KC_M,    KC_COMM, KC_DOT,  KC_SLSH, LOR_ALT,
+            LA_ZOUT, KC_Z,    KC_X,    KC_C,    KC_V,    KC_B,    KC_K,    KC_M,    KC_COMM, KC_DOT,  KC_SLSH, RA_ZIN,
                                        LLS_ESC, LS_BPC,  LLA_DEL, LLE_ENT, RS_SPC,  LLS_COMP
     ),
     // DVORAK has one additional key (UNDS) on its layout, that's why the 2
@@ -138,14 +143,14 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [_DVORAK] = LAYOUT_3x12_6(
             LW_GRV,  KC_QUOT, KC_COMM, KC_DOT,  KC_P,    KC_Y,    KC_F,    KC_G,    KC_C,    KC_R,    KC_L,    RW_EQU,
             LC_TAB,  KC_A,    KC_O,    KC_E,    KC_U,    KC_I,    KC_D,    KC_H,    KC_T,    KC_N,    KC_S,    RC_SLSH,
-            KC_LALT, KC_SCLN, KC_Q,    KC_J,    KC_K,    KC_X,    KC_B,    KC_M,    KC_W,    KC_V,    KC_Z,    LOR_ALT,
+            LA_ZOUT, KC_SCLN, KC_Q,    KC_J,    KC_K,    KC_X,    KC_B,    KC_M,    KC_W,    KC_V,    KC_Z,    RA_ZIN,
                                        LLS_ESC, LS_BPC,  LLA_DEL, LLE_ENT, RS_SPC,  LLS_COMP
     ),
     // Set your custom layout here!
     [_CUSTOM] = LAYOUT_3x12_6(
             LW_GRV,  KC_Q,    KC_W,    KC_D,    KC_F,    KC_P,    KC_K,    KC_L,    KC_U,    KC_Y,    KC_QUOT, RW_EQU,
             LC_TAB,  KC_A,    KC_R,    KC_S,    KC_T,    KC_G,    KC_H,    KC_N,    KC_E,    KC_O,    KC_I,    RC_SCLN,
-            KC_LALT, KC_Z,    KC_X,    KC_C,    KC_V,    KC_B,    KC_J,    KC_M,    KC_COMM, KC_DOT,  KC_SLSH, LOR_ALT,
+            LA_ZOUT, KC_Z,    KC_X,    KC_C,    KC_V,    KC_B,    KC_J,    KC_M,    KC_COMM, KC_DOT,  KC_SLSH, RA_ZIN,
                                        LLS_ESC, LS_BPC,  LLA_DEL, LLE_ENT, RS_SPC,  LLS_COMP
     ),
     [_SPECIAL] = LAYOUT_3x12_6(
@@ -157,7 +162,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [_EXTRA] = LAYOUT_3x12_6(
             LW_F11,  KC_F1,   KC_F2,   KC_F3,   KC_F4,   KC_F5,   KC_F6,   KC_F7,   KC_F8,   KC_F9,   KC_F10,  RW_F12,
             KC_LCTL, KC_PAUS, KC_INS,  KC_VOLD, KC_VOLU, KC_MUTE, KC_HOME, KC_PGDN, KC_PGUP, KC_END,  KC_APP,  KC_RCTL,
-            _______, KC_SLEP, KC_PWR,  KC_MSTP, KC_MNXT, KC_MPLY, _______, KC_BRID, KC_BRIU, KC_PSCR, KC_WAKE, LOR_ALT,
+            _______, KC_SLEP, KC_PWR,  KC_MSTP, KC_MNXT, KC_MPLY, _______, KC_BRID, KC_BRIU, KC_PSCR, KC_WAKE, RA_ZIN,
                                        KC_CAPS, _______, KC_DEL,  _______, _______, CWD_TOG
     ),
     [_ADM] = LAYOUT_3x12_6(
@@ -169,8 +174,8 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [_SETUP] = LAYOUT_3x12_6(
             REFLASH, XXXXXXX, DF_COMK, XXXXXXX, XXXXXXX, XXXXXXX, PEN_WIN, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, ADM_INF,
             XXXXXXX, DF_QWER, DF_CODH, DF_DVRK, DF_CUST, XXXXXXX, PEN_CTRL, OPP_TOGG, ERE_TOGG, XXXXXXX, XXXXXXX, XXXXXXX,
-            XXXXXXX, XXXXXXX, DF_COMX, XXXXXXX, XXXXXXX, XXXXXXX, PEN_SHFT, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, EE_CLR,
-                                       XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX,   XXXXXXX, COMP_SEL
+            XXXXXXX, XXXXXXX, DF_COMX, XXXXXXX, XXXXXXX, XXXXXXX, PEN_ALT, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, EE_CLR,
+                                       XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, PEN_SHFT, COMP_SEL
     ),
 };
 
@@ -180,7 +185,12 @@ static uint8_t mod_state;
 void print_keyboard(const char *msg) {
     mod_state = get_mods();
     unregister_mods(mod_state);
-    send_string(msg);
+    os_variant_t host_os = detected_host_os();
+    if (host_os == OS_WINDOWS) {
+        send_string_with_delay(msg, 5);
+    } else {
+        send_string(msg);
+    }
     register_mods(mod_state);
 }
 
@@ -213,56 +223,47 @@ typedef struct {
     bool pending_mod; // If true, this mode is allowed to be pending
     uint8_t mods; // MODs that have to be added to the TAP
 
-    // Contexts for immediate tap
-    bool context_overlap; // A (tap) key is currently pressed
-    bool context_previous; // Another tap has just been done
-
     // State
     uint16_t time; // Physical keypress time
     uint16_t pressed; // kc pressed, in order to release the same one
-    bool mod_used; // If the mod has been «used» by a tap key
     uint8_t final_mods; // mods + eventually shift at press time
+    bool mod_used; // If the mod has been «used» by a tap key
 } modtap;
 
 // Keys configuration
 static modtap modtaps[] = {
-
-    // Base layer keys
-
     // LW_GRV
-    {.mod = KC_LWIN, .tap = KC_GRV, .left = true, .context_overlap = true, .context_previous = true},
+    {.mod = KC_LWIN, .tap = KC_GRV, .left = true},
     // LW_DOT
-    {.mod = KC_LWIN, .tap = KC_DOT, .left = true, .context_overlap = true, .context_previous = true},
+    {.mod = KC_LWIN, .tap = KC_DOT, .left = true},
     // LC_TAB
-    {.mod = KC_LCTL, .tap = KC_TAB, .left = true, .context_overlap = true, .context_previous = true},
+    {.mod = KC_LCTL, .tap = KC_TAB, .left = true},
     // LS_BPC
-    {.mod = KC_LSFT, .tap = KC_BSPC, .left = true, .context_overlap = false, .context_previous = false},
+    {.mod = KC_LSFT, .tap = KC_BSPC, .left = true},
     // RW_EQU
-    {.mod = KC_RWIN, .tap = KC_EQL, .context_overlap = true, .context_previous = true, },
+    {.mod = KC_RWIN, .tap = KC_EQL},
     // RC_QUT
-    {.mod = KC_RCTL, .tap = KC_QUOT, .context_overlap = true, .context_previous = true, },
+    {.mod = KC_RCTL, .tap = KC_QUOT},
     // RC_SCLN
-    {.mod = KC_RCTL, .tap = KC_SCLN, .context_overlap = true, .context_previous = true, },
+    {.mod = KC_RCTL, .tap = KC_SCLN},
     // RC_SLSH
-    {.mod = KC_RCTL, .tap = KC_SLSH, .context_overlap = true, .context_previous = true, },
+    {.mod = KC_RCTL, .tap = KC_SLSH},
     // RS_SPC
-    {.mod = KC_RSFT, .tap = KC_SPC, .context_overlap = true, .context_previous = true, },
-
-    // Special layer keys
-
+    {.mod = KC_RSFT, .tap = KC_SPC},
+    // LW_F11
+    {.mod = KC_LWIN, .tap = KC_F11, .left = true},
+    // RW_F12
+    {.mod = KC_RWIN, .tap = KC_F12},
     // LC_CIRC ^
     {.mod = KC_LCTL, .tap = KC_6, .left = true, .mods = MOD_BIT(KC_LSFT)},
     // RC_DLR $
     {.mod = KC_RCTL, .tap = KC_4, .mods = MOD_BIT(KC_LSFT)},
     // RW_BS
     {.mod = KC_RWIN, .tap = KC_BSLS},
-
-    // Function layer keys
-
-    // LW_F11
-    {.mod = KC_LWIN, .tap = KC_F11, .left = true},
-    // RW_F12
-    {.mod = KC_RWIN, .tap = KC_F12},
+    // LA_ZOUT (MODs may be adapted based on OS detection)
+    {.mod = KC_LALT, .tap = KC_UNDS, .left = true, .mods = MOD_BIT(KC_LCTL)},
+    // RA_ZIN  (MODs may be adapted based on OS detection)
+    {.mod = KC_RALT, .tap = KC_EQL, .mods = MOD_BIT(KC_LCTL) | MOD_BIT(KC_LSFT)},
 };
 
 #define MODTAP(X) modtaps[X - FIRST_DUAL - 1]
@@ -287,20 +288,20 @@ static uint16_t delayed_time = 0;
 // Smaller delay: favor MOD, larger delay: favor TAP
 #define DELAYED_MOD_OVERLAP (tapping_term / 6)
 
-#define TAP_IF_LAST_PREV_TAP (tapping_term / 3)
-
 static uint16_t retained_mod_key = 0;
 
 void config_pending(void) {
     for (uint8_t i = 0; i < sizeof(modtaps) / sizeof(modtaps[0]); i++) {
         modtaps[i].pending_mod = false;
     }
-
     if (user_config.pending_win == 1) {
         MODTAP(LW_GRV).pending_mod = true;
     }
     if (user_config.pending_ctrl == 1) {
         MODTAP(LC_TAB).pending_mod = true;
+    }
+    if (user_config.pending_alt == 1) {
+        MODTAP(LA_ZOUT).pending_mod = true;
     }
     if (user_config.pending_shift == 1) {
         MODTAP(LS_BPC).pending_mod = true;
@@ -314,6 +315,9 @@ void config_pending(void) {
         MODTAP(RC_SCLN).pending_mod = true;
         MODTAP(RC_SLSH).pending_mod = true;
     }
+    if (user_config.pending_alt == 2) {
+        MODTAP(RA_ZIN).pending_mod = true;
+    }
     if (user_config.pending_shift == 2) {
         MODTAP(RS_SPC).pending_mod = true;
     }
@@ -325,14 +329,6 @@ bool is_modtap(uint16_t key) {
 
 bool is_layer(uint16_t key) {
     return (key > FIRST_LAYER && key < LAST_LAYER);
-}
-
-bool is_controlable(uint16_t kc) {
-    return (kc >= KC_A && kc <=KC_Z);
-}
-
-bool is_shiftable(uint16_t kc) {
-    return is_controlable(kc);
 }
 
 void clean_modtap_state(uint16_t key) {
@@ -407,14 +403,7 @@ bool check_tap_context(uint16_t key) {
         return true;
     }
 
-    if (MODTAP(key).context_overlap && current_taps && timer_elapsed(last_tap_time) < tapping_term) {
-        return true;
-    }
-
-    if (MODTAP(key).context_previous &&
-            last_tap_kc != MODTAP(key).tap &&
-            last_tap_kc != KC_BSPC &&
-            timer_elapsed(last_tap_release_time) < TAP_IF_LAST_PREV_TAP) {
+    if (MODTAP(key).tap != KC_BSPC && current_taps && timer_elapsed(last_tap_time) < tapping_term) {
         return true;
     }
 
@@ -424,9 +413,6 @@ bool check_tap_context(uint16_t key) {
 void mt_register_mod(uint16_t key) {
     MODTAP(key).pressed = MODTAP(key).mod;
     register_code(MODTAP(key).mod);
-    if (current_taps > 0) {
-        MODTAP(key).mod_used = true;
-    }
 }
 
 void mt_register_tap(uint16_t key) {
@@ -438,7 +424,19 @@ void mt_register_tap(uint16_t key) {
     }
     uint16_t kc = MODTAP(key).tap;
     if (MODTAP(key).pressed != kc) {
-        add_weak_mods(MODTAP(key).final_mods);
+        if (key == LA_ZOUT || key == RA_ZIN)  {
+            os_variant_t host_os = detected_host_os();
+            if (host_os == OS_MACOS || host_os == OS_IOS) {
+                add_weak_mods(MOD_BIT(KC_LWIN));
+            } else {
+                add_weak_mods(MOD_BIT(KC_LCTL));
+            }
+            if (key == RA_ZIN) {
+                add_weak_mods(MOD_BIT(KC_LSFT));
+            }
+        } else {
+            add_weak_mods(MODTAP(key).final_mods);
+        }
 
         mod_state = get_mods();
         // The symbol was not shifted initially (when pressed) but now SHIFT is active
@@ -470,22 +468,6 @@ void mt_taphold_reset(void) {
     mt_taphold_key = 0;
 }
 
-void delayed_prepare(uint16_t kc) {
-    delayed_kc = kc;
-    delayed_time = timer_read();
-}
-void delayed_tap(void) {
-    register_code(delayed_kc);
-    last_tap_info(delayed_kc, delayed_time);
-    mod_used(true, true);
-    delayed_kc = 0;
-}
-void delayed_check(void) {
-    if (delayed_kc && timer_elapsed(delayed_time) > DELAYED_MOD_OVERLAP) {
-        delayed_tap();
-    }
-}
-
 void retained_mod_check(void) {
     if (retained_mod_key && timer_elapsed(MODTAP(retained_mod_key).time) > tapping_term) {
         mt_register_mod(retained_mod_key);
@@ -494,9 +476,9 @@ void retained_mod_check(void) {
 }
 
 // Called on physical press
-void mt_press(uint16_t key) {
+void mt_press(uint16_t key, uint16_t time) {
     clean_modtap_state(key);
-    MODTAP(key).time = timer_read();
+    MODTAP(key).time = time;
 
     if (get_mods() & MOD_MASK_SHIFT) {
         // Store the SHIFT state at keypress if the tap is delayed
@@ -541,6 +523,27 @@ void mt_release(uint16_t key) {
     clean_modtap_state(key);
 }
 
+void delayed_prepare(uint16_t kc, uint16_t time) {
+    delayed_kc = kc;
+    delayed_time = time;
+}
+void delayed_tap(void) {
+    // Mod-tap keys management
+    if (is_modtap(delayed_kc)) {
+        mt_press(delayed_kc, delayed_time);
+    } else {
+        register_code(delayed_kc);
+        last_tap_info(delayed_kc, delayed_time);
+        mod_used(true, true);
+    }
+    delayed_kc = 0;
+}
+void delayed_check(void) {
+    if (delayed_kc && timer_elapsed(delayed_time) > DELAYED_MOD_OVERLAP) {
+        delayed_tap();
+    }
+}
+
 void adm_info(void) {
     PK("# ADM42\n\n");
 
@@ -567,7 +570,7 @@ void adm_info(void) {
     }
 
     PK("* Pending MOD(s): ");
-    if (!user_config.pending_win && !user_config.pending_ctrl && !user_config.pending_shift ) PK("DISABLED");
+    if (!user_config.pending_win && !user_config.pending_ctrl && !user_config.pending_alt && !user_config.pending_shift ) PK("DISABLED");
     if (user_config.pending_win) {
         if (user_config.pending_win == 1) PK("L_");
         if (user_config.pending_win == 2) PK("R_");
@@ -577,6 +580,11 @@ void adm_info(void) {
         if (user_config.pending_ctrl == 1) PK("L_");
         if (user_config.pending_ctrl == 2) PK("R_");
         PK("CTRL ");
+    } 
+    if (user_config.pending_alt) {
+        if (user_config.pending_alt == 1) PK("L_");
+        if (user_config.pending_alt == 2) PK("R_");
+        PK("ALT ");
     } 
     if (user_config.pending_shift) {
         if (user_config.pending_shift == 1) PK("L_");
@@ -592,7 +600,7 @@ void adm_info(void) {
         PK("DISABLED\n");
     }
 
-    PK("* Error Reduction: ");
+    PK("* Error reduction: ");
     if (user_config.error_reduction) {
         PK("ENABLED (errors/total:");
         PK(get_u16_str(finger_errors, ' '));
@@ -604,19 +612,13 @@ void adm_info(void) {
     }
 
     PK("* Compose key: ");
-    if (user_config.compose_ralt == 3) {
-        PK("DISABLED\n");
-    } else if (user_config.compose_ralt == 2) {
-        PK("R_ALT (+ R_ALT => L_ALT)\n");
-    } else if (user_config.compose_ralt == 1) {
+    if (user_config.compose_ralt == 2) {
         PK("R_ALT\n");
-    } else {
+    } else if (user_config.compose_ralt == 1) {
         PK("F19\n");
+    } else {
+        PK("DISABLED\n");
     }
-
-    PK("* CAPS_WORD\n");
-
-    PK("* RGB: +AUTOBRIGHTNESS +WPM\n");
 
 #if defined(NKRO_ENABLE) && defined(FORCE_NKRO)
     PK("* NKRO");
@@ -625,6 +627,20 @@ void adm_info(void) {
         PK(" / 1000Hz");
     }
     PK("\n");
+
+    os_variant_t host_os = detected_host_os();
+    PK("* OS detected: ");
+    if (host_os == OS_LINUX) {
+        PK("Linux\n");
+    } else if (host_os == OS_WINDOWS) {
+        PK("Windows\n");
+    } else if (host_os == OS_MACOS) {
+        PK("macOS\n");
+    } else if (host_os == OS_IOS) {
+        PK("iOS\n");
+    } else {
+        PK("unknown\n");
+    }
 
     PK("\n" QMK_KEYBOARD ":" QMK_KEYMAP " | " __DATE__ " - " __TIME__);
 }
@@ -881,26 +897,19 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
         }
     }
 
-    // Mod-tap keys management
-    if (is_modtap(keycode)) {
-        if (record->event.pressed) {
-            mt_press(keycode);
-        } else {
-            mt_release(keycode);
-        }
+    // Delays keys that can be affected by (pending) MODs.
+    if (record->event.pressed && get_mods() && !is_layer(keycode)) {
+        delayed_prepare(keycode, record->event.time);
         return false;
     }
 
-    // Delays keys that can be affected by (pending) MODs.
-    if (record->event.pressed && last_tap_kc != KC_SPC &&
-            is_shiftable(keycode) &&
-            (get_mods() & MOD_MASK_SHIFT)) {
-        delayed_prepare(keycode);
-        return false;
-    }
-    if (record->event.pressed &&
-            is_controlable(keycode) && (get_mods() & MOD_MASK_CTRL)) {
-        delayed_prepare(keycode);
+    // Mod-tap keys management
+    if (is_modtap(keycode)) {
+        if (record->event.pressed) {
+            mt_press(keycode, record->event.time);
+        } else {
+            mt_release(keycode);
+        }
         return false;
     }
 
@@ -916,7 +925,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
 
     /* Standard tap management */
 
-    if (keycode != KC_LALT && keycode != KC_RALT && keycode != LOR_ALT && keycode != COMPOSE) { 
+    if (keycode != KC_LALT && keycode != KC_RALT && keycode != COMPOSE) { 
         if (record->event.pressed) {
             last_tap_info(keycode, record->event.time);
             mod_used(true, true);
@@ -955,17 +964,17 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
             return false;
 
         case COMP_SEL:
-            if (user_config.compose_ralt == 3) {
+            if (user_config.compose_ralt == 2) {
                 user_config.compose_ralt = 0;
             } else {
                 user_config.compose_ralt++;
             }
-            if (user_config.compose_ralt == 3) {
-                LAYERTAP(LLS_COMP).tap = KC_NO;
-            } else if (user_config.compose_ralt == 1 || user_config.compose_ralt == 2) {
+            if (user_config.compose_ralt == 2) {
                 LAYERTAP(LLS_COMP).tap = KC_RALT;
-            } else {
+            } else if (user_config.compose_ralt == 1) {
                 LAYERTAP(LLS_COMP).tap = KC_F19;
+            } else {
+                LAYERTAP(LLS_COMP).tap = KC_NO;
             }
             eeconfig_update_user(user_config.raw);
             return false;
@@ -984,6 +993,15 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                 user_config.pending_ctrl = 0;
             } else {
                 user_config.pending_ctrl++;
+            }
+            eeconfig_update_user(user_config.raw);
+            config_pending();
+            return false;
+        case PEN_ALT:
+            if (user_config.pending_alt == 2) {
+                user_config.pending_alt = 0;
+            } else {
+                user_config.pending_alt++;
             }
             eeconfig_update_user(user_config.raw);
             config_pending();
@@ -1065,27 +1083,21 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     if (record->event.pressed) {
         switch (keycode) {
          case COMPOSE:
-            if (user_config.compose_ralt == 1 || user_config.compose_ralt == 2) {
+            if (user_config.compose_ralt == 2) {
                 register_code(KC_RALT);
-            } else if (user_config.compose_ralt == 0) {
+            } else if (user_config.compose_ralt == 1) {
                 register_code(KC_F19);
             }
-            return false;
-        case LOR_ALT:
-            register_code((user_config.compose_ralt == 2) ? KC_LALT : KC_RALT);
             return false;
         }
     } else {
         switch (keycode) {
          case COMPOSE:
-            if (user_config.compose_ralt == 1 || user_config.compose_ralt == 2) {
+            if (user_config.compose_ralt == 2) {
                 unregister_code(KC_RALT);
-            } else if (user_config.compose_ralt == 0) {
+            } else if (user_config.compose_ralt == 1) {
                 unregister_code(KC_F19);
             }
-            return false;
-         case LOR_ALT:
-            unregister_code((user_config.compose_ralt == 2) ? KC_LALT : KC_RALT);
             return false;
         }
     }
@@ -1115,12 +1127,12 @@ void keyboard_post_init_kb(void) {
     rgb_up();
 
     user_config.raw = eeconfig_read_user();
-    if (user_config.compose_ralt == 3) {
-        LAYERTAP(LLS_COMP).tap = KC_NO;
-    } else if (user_config.compose_ralt == 1 || user_config.compose_ralt == 2) {
+    if (user_config.compose_ralt == 2) {
         LAYERTAP(LLS_COMP).tap = KC_RALT;
-    } else {
+    } else if (user_config.compose_ralt == 1) {
         LAYERTAP(LLS_COMP).tap = KC_F19;
+    } else {
+        LAYERTAP(LLS_COMP).tap = KC_NO;
     }
     config_pending();
 }
@@ -1129,6 +1141,7 @@ void eeconfig_init_user(void) {
     user_config.raw = eeconfig_read_user();
     user_config.pending_win = 0;
     user_config.pending_ctrl = 1;
+    user_config.pending_alt = 1;
     user_config.pending_shift = 1;
     user_config.opposite_mods_as_tap = 1;
     user_config.compose_ralt = 0;
