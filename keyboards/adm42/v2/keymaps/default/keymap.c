@@ -169,7 +169,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
             RGB_WPM, RGB_SAD, RGB_SAI, RGB_VAD, RGB_VAI, RGB_M_B, KC_COMM, KC_7,    KC_8,    KC_9,    KC_PLUS, KC_EQL,
             KGB_WHT, RGB_HUD, RGB_HUI, RGB_RMOD,RGB_MOD, RGB_TOG, KC_DOT,  KC_4,    KC_5,    KC_6,    KC_MINS, KC_PERC,
             KGB_BLU, KGB_GRN, KGB_RED, RGB_SPD, RGB_SPI, RGB_M_P, KC_0,    KC_1,    KC_2,    KC_3,    KC_SLSH, KC_ASTR,
-                                       XXXXXXX, XXXXXXX, XXXXXXX, SETUP,   XXXXXXX, XXXXXXX
+                                       KC_TAB,  KC_BSPC, XXXXXXX, SETUP,   KC_SPC,  KC_ENT
     ),
     [_SETUP] = LAYOUT_3x12_6(
             REFLASH, XXXXXXX, DF_COMK, XXXXXXX, XXXXXXX, XXXXXXX, PEN_WIN, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, ADM_INF,
