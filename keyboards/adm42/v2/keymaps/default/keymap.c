@@ -84,6 +84,7 @@ enum custom_keycodes {
     LLS_COMP,
     LLE_ENT,
     LLA_DEL,
+    LLS_ENT,
     LAST_LAYER, // do not remove
 
     COMPOSE,
@@ -168,8 +169,8 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [_ADM] = LAYOUT_3x12_6(
             RGB_WPM, RGB_SAD, RGB_SAI, RGB_VAD, RGB_VAI, RGB_M_B, KC_COMM, KC_7,    KC_8,    KC_9,    KC_PLUS, KC_EQL,
             KGB_WHT, RGB_HUD, RGB_HUI, RGB_RMOD,RGB_MOD, RGB_TOG, KC_DOT,  KC_4,    KC_5,    KC_6,    KC_MINS, KC_PERC,
-            KGB_BLU, KGB_GRN, KGB_RED, RGB_SPD, RGB_SPI, RGB_M_P, KC_0,    KC_1,    KC_2,    KC_3,    KC_SLSH, KC_ASTR,
-                                       KC_TAB,  KC_BSPC, XXXXXXX, SETUP,   KC_SPC,  KC_ENT
+            KGB_RED, KGB_GRN, KGB_BLU, RGB_SPD, RGB_SPI, RGB_M_P, KC_0,    KC_1,    KC_2,    KC_3,    KC_SLSH, KC_ASTR,
+                                       KC_ESC,  KC_BSPC, XXXXXXX, LLS_ENT, KC_SPC,  KC_TAB
     ),
     [_SETUP] = LAYOUT_3x12_6(
             REFLASH, XXXXXXX, DF_COMK, XXXXXXX, XXXXXXX, XXXXXXX, PEN_WIN, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, ADM_INF,
@@ -773,7 +774,9 @@ static layertap layertaps[] = {
     // LLE_ENT
     {.tap = KC_ENT, .layer = _EXTRA, .autorepeat = true},
     // LLA_DEL
-    {.tap = KC_DEL, .layer = _ADM, .autorepeat = true}
+    {.tap = KC_DEL, .layer = _ADM, .autorepeat = true},
+    // LLS_ENT
+    {.tap = KC_ENT, .layer = _SETUP, .autorepeat = true}
 };
 #define LAYERTAP(X) layertaps[X - FIRST_LAYER - 1]
 
