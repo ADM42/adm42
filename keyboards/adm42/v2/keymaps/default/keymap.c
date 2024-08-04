@@ -263,7 +263,7 @@ static modtap modtaps[] = {
     // LA_ZOUT (MODs may be adapted based on OS detection)
     {.mod = KC_LALT, .tap = KC_UNDS, .left = true, .mods = MOD_BIT(KC_LCTL)},
     // RA_ZIN  (MODs may be adapted based on OS detection)
-    {.mod = KC_RALT, .tap = KC_EQL, .mods = MOD_BIT(KC_LCTL) | MOD_BIT(KC_LSFT)},
+    {.mod = KC_RALT, .tap = KC_EQL, .mods = MOD_BIT(KC_LCTL)},
 };
 
 #define MODTAP(X) modtaps[X - FIRST_DUAL - 1]
@@ -430,9 +430,6 @@ void mt_register_tap(uint16_t key) {
                 add_weak_mods(MOD_BIT(KC_LWIN));
             } else {
                 add_weak_mods(MOD_BIT(KC_LCTL));
-            }
-            if (key == RA_ZIN) {
-                add_weak_mods(MOD_BIT(KC_LSFT));
             }
         } else {
             add_weak_mods(MODTAP(key).final_mods);
