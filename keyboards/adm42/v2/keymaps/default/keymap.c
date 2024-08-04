@@ -189,7 +189,7 @@ void print_keyboard(const char *msg) {
     unregister_mods(mod_state);
     os_variant_t host_os = detected_host_os();
     if (host_os == OS_WINDOWS) {
-        send_string_with_delay(msg, 5);
+        send_string_with_delay(msg, 2);
     } else {
         send_string(msg);
     }
@@ -265,7 +265,7 @@ static modtap modtaps[] = {
     // LA_ZOUT (MODs may be adapted based on OS detection)
     {.mod = KC_LALT, .tap = KC_UNDS, .left = true, .mods = MOD_BIT(KC_LCTL)},
     // RA_ZIN  (MODs may be adapted based on OS detection)
-    {.mod = KC_RALT, .tap = KC_EQL, .mods = MOD_BIT(KC_LCTL) | MOD_BIT(KC_LSFT)},
+    {.mod = KC_RALT, .tap = KC_EQL, .mods = MOD_BIT(KC_LCTL)},
 };
 
 #define MODTAP(X) modtaps[X - FIRST_DUAL - 1]
@@ -432,9 +432,6 @@ void mt_register_tap(uint16_t key) {
                 add_weak_mods(MOD_BIT(KC_LWIN));
             } else {
                 add_weak_mods(MOD_BIT(KC_LCTL));
-            }
-            if (key == RA_ZIN) {
-                add_weak_mods(MOD_BIT(KC_LSFT));
             }
         } else {
             add_weak_mods(MODTAP(key).final_mods);
@@ -1145,7 +1142,7 @@ void eeconfig_init_user(void) {
     user_config.raw = eeconfig_read_user();
     user_config.pending_win = 0;
     user_config.pending_ctrl = 1;
-    user_config.pending_alt = 1;
+    user_config.pending_alt = 0;
     user_config.pending_shift = 1;
     user_config.opposite_mods_as_tap = 1;
     user_config.compose_ralt = 0;
