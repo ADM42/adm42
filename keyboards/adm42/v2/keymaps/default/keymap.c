@@ -187,7 +187,7 @@ void print_keyboard(const char *msg) {
     unregister_mods(mod_state);
     os_variant_t host_os = detected_host_os();
     if (host_os == OS_WINDOWS) {
-        send_string_with_delay(msg, 5);
+        send_string_with_delay(msg, 2);
     } else {
         send_string(msg);
     }
@@ -1141,7 +1141,7 @@ void eeconfig_init_user(void) {
     user_config.raw = eeconfig_read_user();
     user_config.pending_win = 0;
     user_config.pending_ctrl = 1;
-    user_config.pending_alt = 1;
+    user_config.pending_alt = 0;
     user_config.pending_shift = 1;
     user_config.opposite_mods_as_tap = 1;
     user_config.compose_ralt = 0;
