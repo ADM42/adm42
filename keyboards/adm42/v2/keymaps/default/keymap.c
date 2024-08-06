@@ -117,25 +117,25 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [_QWERTY] = LAYOUT_3x12_6(
             LW_GRV,  KC_Q,    KC_W,    KC_E,    KC_R,    KC_T,    KC_Y,    KC_U,    KC_I,    KC_O,    KC_P,    RW_EQU,
             LC_TAB,  KC_A,    KC_S,    KC_D,    KC_F,    KC_G,    KC_H,    KC_J,    KC_K,    KC_L,    KC_SCLN, RC_QUT,
-            LA_ZOUT, KC_Z,    KC_X,    KC_C,    KC_V,    KC_B,    KC_N,    KC_M,    KC_COMM, KC_DOT,  KC_SLSH, CTRL_B,
+            CTRL_B,  KC_Z,    KC_X,    KC_C,    KC_V,    KC_B,    KC_N,    KC_M,    KC_COMM, KC_DOT,  KC_SLSH, CTRL_B,
                                        LLS_ESC, LS_BPC,  LLA_DEL, LLE_ENT, RS_SPC,  LLS_COMP
     ),
     [_COLEMAKDH] = LAYOUT_3x12_6(
             LW_GRV,  KC_Q,    KC_W,    KC_F,    KC_P,    KC_B,    KC_J,    KC_L,    KC_U,    KC_Y,    KC_SCLN, RW_EQU,
             LC_TAB,  KC_A,    KC_R,    KC_S,    KC_T,    KC_G,    KC_M,    KC_N,    KC_E,    KC_I,    KC_O,    RC_QUT,
-            LA_ZOUT, KC_Z,    KC_X,    KC_C,    KC_D,    KC_V,    KC_K,    KC_H,    KC_COMM, KC_DOT,  KC_SLSH, CTRL_B,
+            CTRL_B,  KC_Z,    KC_X,    KC_C,    KC_D,    KC_V,    KC_K,    KC_H,    KC_COMM, KC_DOT,  KC_SLSH, CTRL_B,
                                        LLS_ESC, LS_BPC,  LLA_DEL, LLE_ENT, RS_SPC,  LLS_COMP
     ),
     [_COLEMAX] = LAYOUT_3x12_6(
             LW_GRV,  KC_Q,    KC_W,    KC_F,    KC_P,    KC_G,    KC_K,    KC_L,    KC_U,    KC_Y,    KC_QUOT, RW_EQU,
             LC_TAB,  KC_A,    KC_R,    KC_S,    KC_T,    KC_D,    KC_H,    KC_N,    KC_E,    KC_I,    KC_O,    RC_SCLN,
-            LA_ZOUT, KC_Z,    KC_X,    KC_C,    KC_V,    KC_B,    KC_J,    KC_M,    KC_COMM, KC_DOT,  KC_SLSH, CTRL_B,
+            CTRL_B,  KC_Z,    KC_X,    KC_C,    KC_V,    KC_B,    KC_J,    KC_M,    KC_COMM, KC_DOT,  KC_SLSH, CTRL_B,
                                        LLS_ESC, LS_BPC,  LLA_DEL, LLE_ENT, RS_SPC,  LLS_COMP
     ),
     [_COLEMAK] = LAYOUT_3x12_6(
             LW_GRV,  KC_Q,    KC_W,    KC_F,    KC_P,    KC_G,    KC_J,    KC_L,    KC_U,    KC_Y,    KC_SCLN, RW_EQU,
             LC_TAB,  KC_A,    KC_R,    KC_S,    KC_T,    KC_D,    KC_H,    KC_N,    KC_E,    KC_I,    KC_O,    RC_QUT,
-            LA_ZOUT, KC_Z,    KC_X,    KC_C,    KC_V,    KC_B,    KC_K,    KC_M,    KC_COMM, KC_DOT,  KC_SLSH, CTRL_B,
+            CTRL_B,  KC_Z,    KC_X,    KC_C,    KC_V,    KC_B,    KC_K,    KC_M,    KC_COMM, KC_DOT,  KC_SLSH, CTRL_B,
                                        LLS_ESC, LS_BPC,  LLA_DEL, LLE_ENT, RS_SPC,  LLS_COMP
     ),
     // DVORAK has one additional key (UNDS) on its layout, that's why the 2
@@ -145,14 +145,14 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [_DVORAK] = LAYOUT_3x12_6(
             LW_GRV,  KC_QUOT, KC_COMM, KC_DOT,  KC_P,    KC_Y,    KC_F,    KC_G,    KC_C,    KC_R,    KC_L,    RW_EQU,
             LC_TAB,  KC_A,    KC_O,    KC_E,    KC_U,    KC_I,    KC_D,    KC_H,    KC_T,    KC_N,    KC_S,    RC_SLSH,
-            LA_ZOUT, KC_SCLN, KC_Q,    KC_J,    KC_K,    KC_X,    KC_B,    KC_M,    KC_W,    KC_V,    KC_Z,    CTRL_B,
+            CTRL_B,  KC_SCLN, KC_Q,    KC_J,    KC_K,    KC_X,    KC_B,    KC_M,    KC_W,    KC_V,    KC_Z,    CTRL_B,
                                        LLS_ESC, LS_BPC,  LLA_DEL, LLE_ENT, RS_SPC,  LLS_COMP
     ),
     // Set your custom layout here!
     [_CUSTOM] = LAYOUT_3x12_6(
             LW_GRV,  KC_Q,    KC_W,    KC_D,    KC_F,    KC_P,    KC_K,    KC_L,    KC_U,    KC_Y,    KC_QUOT, RW_EQU,
             LC_TAB,  KC_A,    KC_R,    KC_S,    KC_T,    KC_G,    KC_H,    KC_N,    KC_E,    KC_O,    KC_I,    RC_SCLN,
-            LA_ZOUT, KC_Z,    KC_X,    KC_C,    KC_V,    KC_B,    KC_J,    KC_M,    KC_COMM, KC_DOT,  KC_SLSH, CTRL_B,
+            CTRL_B,  KC_Z,    KC_X,    KC_C,    KC_V,    KC_B,    KC_J,    KC_M,    KC_COMM, KC_DOT,  KC_SLSH, CTRL_B,
                                        LLS_ESC, LS_BPC,  LLA_DEL, LLE_ENT, RS_SPC,  LLS_COMP
     ),
     [_SPECIAL] = LAYOUT_3x12_6(
