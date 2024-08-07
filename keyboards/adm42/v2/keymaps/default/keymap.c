@@ -77,6 +77,8 @@ enum custom_keycodes {
     RW_BS,
     LA_ZOUT,
     RA_ZIN,
+    LA_TMUX,
+    RA_TMUX,
     LAST_DUAL, // do not remove
 
     // Custom layer keys
@@ -117,25 +119,25 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [_QWERTY] = LAYOUT_3x12_6(
             LW_GRV,  KC_Q,    KC_W,    KC_E,    KC_R,    KC_T,    KC_Y,    KC_U,    KC_I,    KC_O,    KC_P,    RW_EQU,
             LC_TAB,  KC_A,    KC_S,    KC_D,    KC_F,    KC_G,    KC_H,    KC_J,    KC_K,    KC_L,    KC_SCLN, RC_QUT,
-            CTRL_B,  KC_Z,    KC_X,    KC_C,    KC_V,    KC_B,    KC_N,    KC_M,    KC_COMM, KC_DOT,  KC_SLSH, CTRL_B,
+            LA_TMUX, KC_Z,    KC_X,    KC_C,    KC_V,    KC_B,    KC_N,    KC_M,    KC_COMM, KC_DOT,  KC_SLSH, RA_TMUX,
                                        LLS_ESC, LS_BPC,  LLA_DEL, LLE_ENT, RS_SPC,  LLS_COMP
     ),
     [_COLEMAKDH] = LAYOUT_3x12_6(
             LW_GRV,  KC_Q,    KC_W,    KC_F,    KC_P,    KC_B,    KC_J,    KC_L,    KC_U,    KC_Y,    KC_SCLN, RW_EQU,
             LC_TAB,  KC_A,    KC_R,    KC_S,    KC_T,    KC_G,    KC_M,    KC_N,    KC_E,    KC_I,    KC_O,    RC_QUT,
-            CTRL_B,  KC_Z,    KC_X,    KC_C,    KC_D,    KC_V,    KC_K,    KC_H,    KC_COMM, KC_DOT,  KC_SLSH, CTRL_B,
+            LA_TMUX, KC_Z,    KC_X,    KC_C,    KC_D,    KC_V,    KC_K,    KC_H,    KC_COMM, KC_DOT,  KC_SLSH, RA_TMUX,
                                        LLS_ESC, LS_BPC,  LLA_DEL, LLE_ENT, RS_SPC,  LLS_COMP
     ),
     [_COLEMAX] = LAYOUT_3x12_6(
             LW_GRV,  KC_Q,    KC_W,    KC_F,    KC_P,    KC_G,    KC_K,    KC_L,    KC_U,    KC_Y,    KC_QUOT, RW_EQU,
             LC_TAB,  KC_A,    KC_R,    KC_S,    KC_T,    KC_D,    KC_H,    KC_N,    KC_E,    KC_I,    KC_O,    RC_SCLN,
-            CTRL_B,  KC_Z,    KC_X,    KC_C,    KC_V,    KC_B,    KC_J,    KC_M,    KC_COMM, KC_DOT,  KC_SLSH, CTRL_B,
+            LA_TMUX, KC_Z,    KC_X,    KC_C,    KC_V,    KC_B,    KC_J,    KC_M,    KC_COMM, KC_DOT,  KC_SLSH, RA_TMUX,
                                        LLS_ESC, LS_BPC,  LLA_DEL, LLE_ENT, RS_SPC,  LLS_COMP
     ),
     [_COLEMAK] = LAYOUT_3x12_6(
             LW_GRV,  KC_Q,    KC_W,    KC_F,    KC_P,    KC_G,    KC_J,    KC_L,    KC_U,    KC_Y,    KC_SCLN, RW_EQU,
             LC_TAB,  KC_A,    KC_R,    KC_S,    KC_T,    KC_D,    KC_H,    KC_N,    KC_E,    KC_I,    KC_O,    RC_QUT,
-            CTRL_B,  KC_Z,    KC_X,    KC_C,    KC_V,    KC_B,    KC_K,    KC_M,    KC_COMM, KC_DOT,  KC_SLSH, CTRL_B,
+            LA_TMUX, KC_Z,    KC_X,    KC_C,    KC_V,    KC_B,    KC_K,    KC_M,    KC_COMM, KC_DOT,  KC_SLSH, RA_TMUX,
                                        LLS_ESC, LS_BPC,  LLA_DEL, LLE_ENT, RS_SPC,  LLS_COMP
     ),
     // DVORAK has one additional key (UNDS) on its layout, that's why the 2
@@ -145,26 +147,26 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [_DVORAK] = LAYOUT_3x12_6(
             LW_GRV,  KC_QUOT, KC_COMM, KC_DOT,  KC_P,    KC_Y,    KC_F,    KC_G,    KC_C,    KC_R,    KC_L,    RW_EQU,
             LC_TAB,  KC_A,    KC_O,    KC_E,    KC_U,    KC_I,    KC_D,    KC_H,    KC_T,    KC_N,    KC_S,    RC_SLSH,
-            CTRL_B,  KC_SCLN, KC_Q,    KC_J,    KC_K,    KC_X,    KC_B,    KC_M,    KC_W,    KC_V,    KC_Z,    CTRL_B,
+            LA_TMUX, KC_SCLN, KC_Q,    KC_J,    KC_K,    KC_X,    KC_B,    KC_M,    KC_W,    KC_V,    KC_Z,    RA_TMUX,
                                        LLS_ESC, LS_BPC,  LLA_DEL, LLE_ENT, RS_SPC,  LLS_COMP
     ),
     // Set your custom layout here!
     [_CUSTOM] = LAYOUT_3x12_6(
             LW_GRV,  KC_Q,    KC_W,    KC_D,    KC_F,    KC_P,    KC_K,    KC_L,    KC_U,    KC_Y,    KC_QUOT, RW_EQU,
             LC_TAB,  KC_A,    KC_R,    KC_S,    KC_T,    KC_G,    KC_H,    KC_N,    KC_E,    KC_O,    KC_I,    RC_SCLN,
-            CTRL_B,  KC_Z,    KC_X,    KC_C,    KC_V,    KC_B,    KC_J,    KC_M,    KC_COMM, KC_DOT,  KC_SLSH, CTRL_B,
+            LA_TMUX, KC_Z,    KC_X,    KC_C,    KC_V,    KC_B,    KC_J,    KC_M,    KC_COMM, KC_DOT,  KC_SLSH, RA_TMUX,
                                        LLS_ESC, LS_BPC,  LLA_DEL, LLE_ENT, RS_SPC,  LLS_COMP
     ),
     [_SPECIAL] = LAYOUT_3x12_6(
             LW_DOT,  KC_1,    KC_2,    KC_3,    KC_4,    KC_5,    KC_6,    KC_7,    KC_8,    KC_9,    KC_0,    RW_BS,
             LC_CIRC, KC_LBRC, KC_RBRC, KC_LPRN, KC_RPRN, KC_EXLM, KC_LEFT, KC_DOWN, KC_UP,   KC_RGHT, KC_MINS, RC_DLR,
-            KC_LALT, KC_AMPR, KC_AT,   KC_LCBR, KC_RCBR, KC_PIPE, KC_UNDS, KC_ASTR, KC_HASH, KC_PERC, KC_TILD, KC_RALT,
+            LA_TMUX, KC_AMPR, KC_AT,   KC_LCBR, KC_RCBR, KC_PIPE, KC_UNDS, KC_ASTR, KC_HASH, KC_PERC, KC_TILD, RA_TMUX,
                                        KC_ESC,  _______, KC_DEL,  KC_ENT,  _______, COMPOSE
     ),
     [_EXTRA] = LAYOUT_3x12_6(
             LW_F11,  KC_F1,   KC_F2,   KC_F3,   KC_F4,   KC_F5,   KC_F6,   KC_F7,   KC_F8,   KC_F9,   KC_F10,  RW_F12,
             KC_LCTL, KC_PAUS, KC_INS,  KC_VOLD, KC_VOLU, KC_MUTE, KC_HOME, KC_PGDN, KC_PGUP, KC_END,  KC_APP,  KC_RCTL,
-            KC_LALT, KC_SLEP, KC_PWR,  KC_MSTP, KC_MNXT, KC_MPLY, _______, KC_BRID, KC_BRIU, KC_PSCR, KC_WAKE, KC_RALT,
+            LA_ZOUT, KC_SLEP, KC_PWR,  KC_MSTP, KC_MNXT, KC_MPLY, _______, KC_BRID, KC_BRIU, KC_PSCR, KC_WAKE, RA_ZIN,
                                        KC_CAPS, _______, KC_DEL,  _______, _______, CWD_TOG
     ),
     [_ADM] = LAYOUT_3x12_6(
@@ -266,6 +268,10 @@ static modtap modtaps[] = {
     {.mod = KC_LALT, .tap = KC_UNDS, .left = true, .mods = MOD_BIT(KC_LCTL)},
     // RA_ZIN  (MODs may be adapted based on OS detection)
     {.mod = KC_RALT, .tap = KC_EQL, .mods = MOD_BIT(KC_LCTL)},
+    // LA_TMUX
+    {.mod = KC_LALT, .tap = KC_B, .left = true, .mods = MOD_BIT(KC_LCTL)},
+    // RA_TMUX
+    {.mod = KC_RALT, .tap = KC_B, .mods = MOD_BIT(KC_LCTL)},
 };
 
 #define MODTAP(X) modtaps[X - FIRST_DUAL - 1]
