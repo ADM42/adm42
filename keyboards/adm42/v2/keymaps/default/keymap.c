@@ -288,6 +288,8 @@ static uint16_t delayed_time = 0;
 // Smaller delay: favor MOD, larger delay: favor TAP
 #define DELAYED_MOD_OVERLAP (tapping_term / 6)
 
+#define TAP_IF_LAST_PREV_TAP (tapping_term / 3)
+
 static uint16_t retained_mod_key = 0;
 
 void config_pending(void) {
@@ -404,6 +406,13 @@ bool check_tap_context(uint16_t key) {
     }
 
     if (MODTAP(key).tap != KC_BSPC && current_taps && timer_elapsed(last_tap_time) < tapping_term) {
+        return true;
+    }
+
+    if (MODTAP(key).tap != KC_BSPC &&
+            last_tap_kc != MODTAP(key).tap &&
+            last_tap_kc != KC_BSPC &&
+            timer_elapsed(last_tap_release_time) < TAP_IF_LAST_PREV_TAP) {
         return true;
     }
 
