@@ -904,7 +904,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     }
 
     // Delays keys that can be affected by (pending) MODs.
-    if (record->event.pressed && get_mods() && !is_layer(keycode)) {
+    if (record->event.pressed && get_mods() && !is_layer(keycode) && !QK_MODS_GET_MODS(keycode)) {
         delayed_prepare(keycode, record->event.time);
         return false;
     }
