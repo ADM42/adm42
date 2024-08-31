@@ -34,7 +34,7 @@ static union {
         int pending_alt : 2;
         int pending_shift : 2;
         bool opposite_mods_as_tap : 1;
-        int compose_ralt: 2; // DISABLED, F19, R_ALT
+        int compose_key: 2; // DISABLED, F19, R_ALT, R_ALT (+ L_ALT replacing R_ALT)
         bool error_reduction: 1;
     };
 } user_config;
@@ -87,6 +87,7 @@ enum custom_keycodes {
     LAST_LAYER, // do not remove
 
     COMPOSE,
+    LOR_ALT,
     CWD_TOG,
 
     KGB_WHT,
@@ -156,13 +157,13 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [_SPECIAL] = LAYOUT_3x12_6(
             LW_DOT,  KC_1,    KC_2,    KC_3,    KC_4,    KC_5,    KC_6,    KC_7,    KC_8,    KC_9,    KC_0,    RW_BS,
             LC_CIRC, KC_LBRC, KC_RBRC, KC_LPRN, KC_RPRN, KC_EXLM, KC_LEFT, KC_DOWN, KC_UP,   KC_RGHT, KC_MINS, RC_DLR,
-            KC_LALT, KC_AMPR, KC_AT,   KC_LCBR, KC_RCBR, KC_PIPE, KC_UNDS, KC_ASTR, KC_HASH, KC_PERC, KC_TILD, KC_RALT,
+            KC_LALT, KC_AMPR, KC_AT,   KC_LCBR, KC_RCBR, KC_PIPE, KC_UNDS, KC_ASTR, KC_HASH, KC_PERC, KC_TILD, LOR_ALT,
                                        KC_ESC,  _______, KC_DEL,  KC_ENT,  _______, COMPOSE
     ),
     [_EXTRA] = LAYOUT_3x12_6(
             LW_F11,  KC_F1,   KC_F2,   KC_F3,   KC_F4,   KC_F5,   KC_F6,   KC_F7,   KC_F8,   KC_F9,   KC_F10,  RW_F12,
             KC_LCTL, KC_PAUS, KC_INS,  KC_VOLD, KC_VOLU, KC_MUTE, KC_HOME, KC_PGDN, KC_PGUP, KC_END,  KC_APP,  KC_RCTL,
-            KC_LALT, KC_SLEP, KC_PWR,  KC_MSTP, KC_MNXT, KC_MPLY, _______, KC_BRID, KC_BRIU, KC_PSCR, KC_WAKE, KC_RALT,
+            KC_LALT, KC_SLEP, KC_PWR,  KC_MSTP, KC_MNXT, KC_MPLY, _______, KC_BRID, KC_BRIU, KC_PSCR, KC_WAKE, LOR_ALT,
                                        KC_CAPS, _______, KC_DEL,  _______, _______, CWD_TOG
     ),
     [_ADM] = LAYOUT_3x12_6(
@@ -291,39 +292,6 @@ static uint16_t delayed_time = 0;
 #define TAP_IF_LAST_PREV_TAP (tapping_term / 3)
 
 static uint16_t retained_mod_key = 0;
-
-void config_pending(void) {
-    for (uint8_t i = 0; i < sizeof(modtaps) / sizeof(modtaps[0]); i++) {
-        modtaps[i].pending_mod = false;
-    }
-    if (user_config.pending_win == 1) {
-        MODTAP(LW_GRV).pending_mod = true;
-    }
-    if (user_config.pending_ctrl == 1) {
-        MODTAP(LC_TAB).pending_mod = true;
-    }
-    if (user_config.pending_alt == 1) {
-        MODTAP(LA_ZOUT).pending_mod = true;
-    }
-    if (user_config.pending_shift == 1) {
-        MODTAP(LS_BPC).pending_mod = true;
-    }
-
-    if (user_config.pending_win == 2) {
-        MODTAP(RW_EQU).pending_mod = true;
-    }
-    if (user_config.pending_ctrl == 2) {
-        MODTAP(RC_QUT).pending_mod = true;
-        MODTAP(RC_SCLN).pending_mod = true;
-        MODTAP(RC_SLSH).pending_mod = true;
-    }
-    if (user_config.pending_alt == 2) {
-        MODTAP(RA_ZIN).pending_mod = true;
-    }
-    if (user_config.pending_shift == 2) {
-        MODTAP(RS_SPC).pending_mod = true;
-    }
-}
 
 bool is_modtap(uint16_t key) {
     return (key > FIRST_DUAL && key < LAST_DUAL);
@@ -618,9 +586,11 @@ void adm_info(void) {
     }
 
     PK("* Compose key: ");
-    if (user_config.compose_ralt == 2) {
+    if (user_config.compose_key == 3) {
+        PK("R_ALT (+ L_ALT replacing R_ALT)\n");
+    } else if (user_config.compose_key == 2) {
         PK("R_ALT\n");
-    } else if (user_config.compose_ralt == 1) {
+    } else if (user_config.compose_key == 1) {
         PK("F19\n");
     } else {
         PK("DISABLED\n");
@@ -821,6 +791,38 @@ void lt_release(uint16_t key) {
     }
 }
 
+void config_compose(void) {
+    MODTAP(RA_ZIN).mod = KC_RALT;
+    if (user_config.compose_key == 3) {
+        LAYERTAP(LLS_COMP).tap = KC_RALT;
+        MODTAP(RA_ZIN).mod = KC_LALT;
+    } else if (user_config.compose_key == 2) {
+        LAYERTAP(LLS_COMP).tap = KC_RALT;
+    } else if (user_config.compose_key == 1) {
+        LAYERTAP(LLS_COMP).tap = KC_F19;
+    } else {
+        LAYERTAP(LLS_COMP).tap = KC_NO;
+    }
+}
+
+void config_pending(void) {
+    for (uint8_t i = 0; i < sizeof(modtaps) / sizeof(modtaps[0]); i++) {
+        modtaps[i].pending_mod = false;
+    }
+    if (user_config.pending_win == 1) MODTAP(LW_GRV).pending_mod = true;
+    if (user_config.pending_ctrl == 1) MODTAP(LC_TAB).pending_mod = true;
+    if (user_config.pending_alt == 1) MODTAP(LA_ZOUT).pending_mod = true;
+    if (user_config.pending_shift == 1) MODTAP(LS_BPC).pending_mod = true;
+    if (user_config.pending_win == 2) MODTAP(RW_EQU).pending_mod = true;
+    if (user_config.pending_ctrl == 2) {
+        MODTAP(RC_QUT).pending_mod = true;
+        MODTAP(RC_SCLN).pending_mod = true;
+        MODTAP(RC_SLSH).pending_mod = true;
+    }
+    if (user_config.pending_alt == 2) MODTAP(RA_ZIN).pending_mod = true;
+    if (user_config.pending_shift == 2) MODTAP(RS_SPC).pending_mod = true;
+}
+
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
 
     if (user_config.error_reduction) {
@@ -931,7 +933,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
 
     /* Standard tap management */
 
-    if (keycode != KC_LALT && keycode != KC_RALT && keycode != COMPOSE) { 
+    if (keycode != KC_LALT && keycode != KC_RALT && keycode != LOR_ALT && keycode != COMPOSE) {
         if (record->event.pressed) {
             last_tap_info(keycode, record->event.time);
             mod_used(true, true);
@@ -970,19 +972,13 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
             return false;
 
         case COMP_SEL:
-            if (user_config.compose_ralt == 2) {
-                user_config.compose_ralt = 0;
+            if (user_config.compose_key == 3) {
+                user_config.compose_key = 0;
             } else {
-                user_config.compose_ralt++;
-            }
-            if (user_config.compose_ralt == 2) {
-                LAYERTAP(LLS_COMP).tap = KC_RALT;
-            } else if (user_config.compose_ralt == 1) {
-                LAYERTAP(LLS_COMP).tap = KC_F19;
-            } else {
-                LAYERTAP(LLS_COMP).tap = KC_NO;
+                user_config.compose_key++;
             }
             eeconfig_update_user(user_config.raw);
+            config_compose();
             return false;
 
         case PEN_WIN:
@@ -1089,21 +1085,19 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     if (record->event.pressed) {
         switch (keycode) {
          case COMPOSE:
-            if (user_config.compose_ralt == 2) {
-                register_code(KC_RALT);
-            } else if (user_config.compose_ralt == 1) {
-                register_code(KC_F19);
-            }
+            register_code(LAYERTAP(LLS_COMP).tap);
+            return false;
+        case LOR_ALT:
+            register_code((user_config.compose_key == 3) ? KC_LALT : KC_RALT);
             return false;
         }
     } else {
         switch (keycode) {
          case COMPOSE:
-            if (user_config.compose_ralt == 2) {
-                unregister_code(KC_RALT);
-            } else if (user_config.compose_ralt == 1) {
-                unregister_code(KC_F19);
-            }
+            unregister_code(LAYERTAP(LLS_COMP).tap);
+            return false;
+         case LOR_ALT:
+            unregister_code((user_config.compose_key == 3) ? KC_LALT : KC_RALT);
             return false;
         }
     }
@@ -1133,13 +1127,7 @@ void keyboard_post_init_kb(void) {
     rgb_up();
 
     user_config.raw = eeconfig_read_user();
-    if (user_config.compose_ralt == 2) {
-        LAYERTAP(LLS_COMP).tap = KC_RALT;
-    } else if (user_config.compose_ralt == 1) {
-        LAYERTAP(LLS_COMP).tap = KC_F19;
-    } else {
-        LAYERTAP(LLS_COMP).tap = KC_NO;
-    }
+    config_compose();
     config_pending();
 }
 
@@ -1150,7 +1138,7 @@ void eeconfig_init_user(void) {
     user_config.pending_alt = 0;
     user_config.pending_shift = 1;
     user_config.opposite_mods_as_tap = 1;
-    user_config.compose_ralt = 0;
+    user_config.compose_key = 0;
     user_config.error_reduction = 0;
     eeconfig_update_user(user_config.raw);
 }
