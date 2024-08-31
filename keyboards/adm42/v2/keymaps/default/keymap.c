@@ -35,6 +35,7 @@ static union {
         int pending_shift : 2;
         bool opposite_mods_as_tap : 1;
         int compose_key: 2; // DISABLED, F19, R_ALT, R_ALT (+ L_ALT replacing R_ALT)
+        bool ralt_as_lalt: 1;
         bool error_reduction: 1;
     };
 } user_config;
@@ -109,6 +110,7 @@ enum custom_keycodes {
     PEN_SHFT,
     OPP_TOGG,
     COMP_SEL,
+    ALT_SEL,
     ERE_TOGG,
 };
 
@@ -175,7 +177,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [_SETUP] = LAYOUT_3x12_6(
             REFLASH, XXXXXXX, DF_COMK, XXXXXXX, XXXXXXX, XXXXXXX, PEN_WIN, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, ADM_INF,
             XXXXXXX, DF_QWER, DF_CODH, DF_DVRK, DF_CUST, XXXXXXX, PEN_CTRL, OPP_TOGG, ERE_TOGG, XXXXXXX, XXXXXXX, XXXXXXX,
-            XXXXXXX, XXXXXXX, DF_COMX, XXXXXXX, XXXXXXX, XXXXXXX, PEN_ALT, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, EE_CLR,
+            XXXXXXX, XXXXXXX, DF_COMX, XXXXXXX, XXXXXXX, XXXXXXX, PEN_ALT, ALT_SEL, XXXXXXX, XXXXXXX, XXXXXXX, EE_CLR,
                                        XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, PEN_SHFT, COMP_SEL
     ),
 };
@@ -586,14 +588,15 @@ void adm_info(void) {
     }
 
     PK("* Compose key: ");
-    if (user_config.compose_key == 3) {
-        PK("R_ALT (+ L_ALT replacing R_ALT)\n");
-    } else if (user_config.compose_key == 2) {
+    if (user_config.compose_key == 2) {
         PK("R_ALT\n");
     } else if (user_config.compose_key == 1) {
         PK("F19\n");
     } else {
         PK("DISABLED\n");
+    }
+    if (user_config.ralt_as_lalt) {
+        PK("* R_ALT as L_ALT\n");
     }
 
 #if defined(NKRO_ENABLE) && defined(FORCE_NKRO)
@@ -792,10 +795,8 @@ void lt_release(uint16_t key) {
 }
 
 void config_compose(void) {
-    MODTAP(RA_ZIN).mod = KC_RALT;
     if (user_config.compose_key == 3) {
         LAYERTAP(LLS_COMP).tap = KC_RALT;
-        MODTAP(RA_ZIN).mod = KC_LALT;
     } else if (user_config.compose_key == 2) {
         LAYERTAP(LLS_COMP).tap = KC_RALT;
     } else if (user_config.compose_key == 1) {
@@ -971,8 +972,14 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
             adm_info();
             return false;
 
+        case ALT_SEL:
+            user_config.ralt_as_lalt = !user_config.ralt_as_lalt;
+            MODTAP(RA_ZIN).mod = (user_config.ralt_as_lalt) ? KC_LALT : KC_RALT;
+            eeconfig_update_user(user_config.raw);
+            return false;
+
         case COMP_SEL:
-            if (user_config.compose_key == 3) {
+            if (user_config.compose_key == 2) {
                 user_config.compose_key = 0;
             } else {
                 user_config.compose_key++;
@@ -1088,7 +1095,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
             register_code(LAYERTAP(LLS_COMP).tap);
             return false;
         case LOR_ALT:
-            register_code((user_config.compose_key == 3) ? KC_LALT : KC_RALT);
+            register_code((user_config.ralt_as_lalt) ? KC_LALT : KC_RALT);
             return false;
         }
     } else {
@@ -1097,7 +1104,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
             unregister_code(LAYERTAP(LLS_COMP).tap);
             return false;
          case LOR_ALT:
-            unregister_code((user_config.compose_key == 3) ? KC_LALT : KC_RALT);
+            unregister_code((user_config.ralt_as_lalt) ? KC_LALT : KC_RALT);
             return false;
         }
     }
@@ -1127,6 +1134,7 @@ void keyboard_post_init_kb(void) {
     rgb_up();
 
     user_config.raw = eeconfig_read_user();
+    MODTAP(RA_ZIN).mod = (user_config.ralt_as_lalt) ? KC_LALT : KC_RALT;
     config_compose();
     config_pending();
 }
@@ -1139,6 +1147,7 @@ void eeconfig_init_user(void) {
     user_config.pending_shift = 1;
     user_config.opposite_mods_as_tap = 1;
     user_config.compose_key = 0;
+    user_config.ralt_as_lalt = false;
     user_config.error_reduction = 0;
     eeconfig_update_user(user_config.raw);
 }
