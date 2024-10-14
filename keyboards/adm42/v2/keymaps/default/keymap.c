@@ -13,7 +13,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#define VERSION "v2.4.1"
+#define VERSION "v2.4.2"
 
 #include QMK_KEYBOARD_H
 #include <version.h>
@@ -23,8 +23,10 @@ extern void rgb_matrix_update_pwm_buffers(void);
 
 #include <os_detection.h>
 
-// Base for timming computations
+// Base for timing computations
 static uint8_t tapping_term = 200;
+// Without a delay, some games may miss fast tap/release triggered by dual-keys
+static uint8_t dual_tap_duration = 25;
 
 // Config in eeprom
 static union {
@@ -75,7 +77,7 @@ enum custom_keycodes {
     RW_F12,
     LC_CIRC,
     RC_DLR,
-    RW_BS,
+    RW_BSLS,
     LA_ZOUT,
     RA_ZIN,
     LAST_DUAL, // do not remove
@@ -158,7 +160,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
                                        LLS_ESC, LS_BPC,  LLA_DEL, LLE_ENT, RS_SPC,  LLS_COMP
     ),
     [_SPECIAL] = LAYOUT_3x12_6(
-            LW_DOT,  KC_1,    KC_2,    KC_3,    KC_4,    KC_5,    KC_6,    KC_7,    KC_8,    KC_9,    KC_0,    RW_BS,
+            LW_DOT,  KC_1,    KC_2,    KC_3,    KC_4,    KC_5,    KC_6,    KC_7,    KC_8,    KC_9,    KC_0,    RW_BSLS,
             LC_CIRC, KC_LBRC, KC_RBRC, KC_LPRN, KC_RPRN, KC_EXLM, KC_LEFT, KC_DOWN, KC_UP,   KC_RGHT, KC_MINS, RC_DLR,
             KC_LALT, KC_AMPR, KC_AT,   KC_LCBR, KC_RCBR, KC_PIPE, KC_UNDS, KC_ASTR, KC_HASH, KC_PERC, KC_TILD, LOR_ALT,
                                        CWD_TOG, _______, KC_DEL,  KC_ENT,  _______, CWD_TOG
@@ -262,7 +264,7 @@ static modtap modtaps[] = {
     {.mod = KC_LCTL, .tap = KC_6, .left = true, .mods = MOD_BIT(KC_LSFT)},
     // RC_DLR $
     {.mod = KC_RCTL, .tap = KC_4, .mods = MOD_BIT(KC_LSFT)},
-    // RW_BS
+    // RW_BSLS
     {.mod = KC_RWIN, .tap = KC_BSLS},
     // LA_ZOUT (MODs may be adapted based on OS detection)
     {.mod = KC_LALT, .tap = KC_UNDS, .left = true, .mods = MOD_BIT(KC_LCTL)},
@@ -367,6 +369,7 @@ bool check_opposite_mods(uint16_t key) {
     return false;
 }
 
+// If this function returns true, the dual-mod will behave immediately as a tap
 bool check_tap_context(uint16_t key) {
     if (check_already_mod(key)) {
         return true;
@@ -424,6 +427,7 @@ void mt_register_tap(uint16_t key) {
         register_code(kc);
         last_tap_info(kc, MODTAP(key).time);
         mod_used(false, true);
+        wait_ms(dual_tap_duration);
 
         if (remove_shift) set_mods(mod_state);
 
@@ -716,7 +720,7 @@ static bool caps_word = false;
 void caps_word_stop(void) {
     if (caps_word) {
         caps_word = false;
-        if (host_keyboard_leds() & 2) {
+        if (host_keyboard_led_state().caps_lock) {
             tap_code(KC_CAPS);
         }
     }
@@ -778,7 +782,7 @@ void lt_release(uint16_t key) {
         layer_off(LAYERTAP(key).layer);
         if (key == p_current_keycode && timer_elapsed(p_current_time) <= tapping_term) {
             uint16_t kc = LAYERTAP(key).tap;
-            tap_code(kc);
+            tap_code_delay(kc, dual_tap_duration);
             caps_word_stop();
             last_tap_info(kc, p_current_time);
             mod_used(true, true);
@@ -874,11 +878,11 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
         if (record->event.pressed) {
             if (caps_word) {
                 caps_word = false;
-                if (host_keyboard_leds() & 2) {
+                if (host_keyboard_led_state().caps_lock) {
                     tap_code(KC_CAPS);
                 }
             } else {
-                if (!(host_keyboard_leds() & 2)) {
+                if (!host_keyboard_led_state().caps_lock) {
                     caps_word = true;
                 }
                 tap_code(KC_CAPS);
@@ -900,7 +904,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     }
 
     // Delays keys that can be affected by (pending) MODs.
-    if (record->event.pressed && get_mods() && !is_layer(keycode) && !QK_MODS_GET_MODS(keycode)) {
+    if (record->event.pressed && get_mods() && IS_BASIC_KEYCODE(keycode)) {
         delayed_prepare(keycode, record->event.time);
         return false;
     }
