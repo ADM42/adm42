@@ -13,7 +13,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#define VERSION "v2.5"
+#define VERSION "v2.51"
 
 #include QMK_KEYBOARD_H
 #include <version.h>
@@ -27,6 +27,12 @@ extern void rgb_matrix_update_pwm_buffers(void);
 static uint8_t tapping_term = 200;
 // Without a delay, some games may miss fast tap/release triggered by dual-keys
 static uint8_t dual_tap_duration = 25;
+
+// Reset animation
+static bool reset = false;
+static uint8_t reset_anim_count = 0;
+static uint8_t reset_anim_duration = 20;
+static uint16_t reset_anim_time = 0;
 
 // Config in eeprom
 static union {
@@ -961,8 +967,12 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
             set_single_persistent_default_layer(_CUSTOM);
             return false;
          case REFLASH:
-            writePinLow(QMK_LED);
-            reset_keyboard();
+            reset = true;
+            reset_anim_time = timer_read();
+            reset_anim_count = 14;
+            rgb_matrix_enable_noeeprom();
+            rgb_matrix_mode_noeeprom(RGB_MATRIX_SOLID_COLOR);
+
             return false;
 
          case ADM_INF:
@@ -1110,6 +1120,22 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
 }
 
 void matrix_scan_user(void) {
+    if (reset && timer_elapsed(reset_anim_time) > reset_anim_duration) {
+        if (reset_anim_count == 0) {
+            writePinLow(QMK_LED);
+            reset_keyboard();
+        } else {
+            reset_anim_time = timer_read();
+            reset_anim_count--;
+            if (reset_anim_count % 2 == 0) {
+                rgb_matrix_sethsv_noeeprom(0, 0, 0);
+                reset_anim_duration = 40;
+            } else {
+                rgb_matrix_sethsv_noeeprom(0, 0, 192);
+                reset_anim_duration = 20;
+            }
+        }
+    }
     mt_taphold_check();
     retained_mod_check();
     delayed_check();
