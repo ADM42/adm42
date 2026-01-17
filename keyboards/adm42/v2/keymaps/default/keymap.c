@@ -71,7 +71,7 @@ enum custom_keycodes {
     // Custom dual-function keys
     FIRST_DUAL, // do not remove
     LW_GRV,
-    LW_DOT,
+    RW_DOT,
     LC_TAB,
     LS_BPC,
     RW_EQU,
@@ -83,7 +83,6 @@ enum custom_keycodes {
     RW_F12,
     LC_CIRC,
     RC_DLR,
-    RW_BSLS,
     LA_ZOUT,
     RA_ZIN,
     LAST_DUAL, // do not remove
@@ -246,8 +245,8 @@ typedef struct {
 static modtap modtaps[] = {
     // LW_GRV
     {.mod = KC_LWIN, .tap = KC_GRV, .left = true},
-    // LW_DOT
-    {.mod = KC_LWIN, .tap = KC_DOT, .left = true},
+    // RW_DOT
+    {.mod = KC_RWIN, .tap = KC_DOT},
     // LC_TAB
     {.mod = KC_LCTL, .tap = KC_TAB, .left = true},
     // LS_BPC
@@ -270,8 +269,6 @@ static modtap modtaps[] = {
     {.mod = KC_LCTL, .tap = KC_6, .left = true, .mods = MOD_BIT(KC_LSFT)},
     // RC_DLR $
     {.mod = KC_RCTL, .tap = KC_4, .mods = MOD_BIT(KC_LSFT)},
-    // RW_BSLS
-    {.mod = KC_RWIN, .tap = KC_BSLS},
     // LA_ZOUT (MODs may be adapted based on OS detection)
     {.mod = KC_LALT, .tap = KC_UNDS, .left = true, .mods = MOD_BIT(KC_LCTL)},
     // RA_ZIN  (MODs may be adapted based on OS detection)
