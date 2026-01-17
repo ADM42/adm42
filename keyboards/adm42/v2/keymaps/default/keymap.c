@@ -13,7 +13,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#define VERSION "v2.51"
+#define VERSION "v2.6"
 
 #include QMK_KEYBOARD_H
 #include <version.h>
@@ -27,6 +27,49 @@ extern void rgb_matrix_update_pwm_buffers(void);
 static uint8_t tapping_term = 200;
 // Without a delay, some games may miss fast tap/release triggered by dual-keys
 static uint8_t dual_tap_duration = 25;
+
+// Startup animation
+// Highlights the fact that the keyboard is plugged in, even if no RGB effects are enabled by the user.
+// Can be very useful with magnetic cables to quickly confirm they are correctly connected.
+#define STARTUP_ALWAYS false
+#define STARTUP_MAX_VALUE 250
+#define STARTUP_MIN_VALUE 0
+typedef struct {    bool active;
+    bool running;
+    bool up;
+    uint8_t value;
+} startup_t;
+static startup_t startup = {
+    .active = false,
+    .running = false,
+    .up = true,
+    .value = STARTUP_MIN_VALUE,
+};
+
+typedef struct {    bool enabled;
+    uint8_t mode;
+    uint8_t hue;
+    uint8_t sat;
+    uint8_t val;
+    uint8_t speed;
+} rgb_state_t;
+static rgb_state_t saved_rgb_state;
+void save_rgb_state(void) {
+    saved_rgb_state.enabled = rgb_matrix_is_enabled();
+    saved_rgb_state.mode = rgb_matrix_get_mode();
+    saved_rgb_state.hue = rgb_matrix_get_hue();
+    saved_rgb_state.sat = rgb_matrix_get_sat();
+    saved_rgb_state.val = rgb_matrix_get_val();
+    saved_rgb_state.speed = rgb_matrix_get_speed();
+}
+void restore_rgb_state(void) {
+    rgb_matrix_enable_noeeprom();
+    rgb_matrix_mode_noeeprom(saved_rgb_state.mode);
+    rgb_matrix_sethsv_noeeprom(saved_rgb_state.hue, saved_rgb_state.sat, saved_rgb_state.val);
+    rgb_matrix_set_speed_noeeprom(saved_rgb_state.speed);
+    if (!saved_rgb_state.enabled)
+        rgb_matrix_disable_noeeprom();
+}
 
 // Reset animation
 static bool reset = false;
@@ -943,6 +986,11 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
         }
     }
 
+    if (IS_RGB_KEYCODE(keycode)) {
+        if (startup.active)
+            return false;
+    }
+
     if (record->event.pressed) {
         switch (keycode) {
          case DF_QWER:
@@ -1117,6 +1165,19 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
 }
 
 void matrix_scan_user(void) {
+    if (startup.active) {
+        if (!startup.running) {
+            restore_rgb_state();
+            startup.active = false;
+            rgb_up();
+        } else {
+            startup.value += startup.up ? 1 : -1;
+            if (startup.value >= STARTUP_MAX_VALUE) startup.up = false;
+            if (startup.value <= STARTUP_MIN_VALUE) startup.running = false;
+            rgb_matrix_sethsv_noeeprom(0, 0, startup.value >> 1);
+        }
+    }
+
     if (reset && timer_elapsed(reset_anim_time) > reset_anim_duration) {
         if (reset_anim_count == 0) {
             writePinLow(QMK_LED);
@@ -1137,9 +1198,11 @@ void matrix_scan_user(void) {
     retained_mod_check();
     delayed_check();
 
-    rgb_mode_check();
-    if (rgb_wpm_enabled) {
-        rgb_val_decrease();
+    if (!startup.active) {
+        rgb_mode_check();
+        if (rgb_wpm_enabled) {
+            rgb_val_decrease();
+        }
     }
 }
 
@@ -1151,7 +1214,16 @@ void keyboard_pre_init_kb(void) {
 }
 
 void keyboard_post_init_kb(void) {
-    rgb_up();
+
+    if (STARTUP_ALWAYS || !rgb_matrix_is_enabled()) {
+        startup.active = true;
+        startup.running = true;
+        save_rgb_state();
+        rgb_matrix_enable_noeeprom();
+        rgb_matrix_mode_noeeprom(RGB_MATRIX_SOLID_COLOR);
+    } else {
+        rgb_up();
+    }
 
     user_config.raw = eeconfig_read_user();
     MODTAP(RA_ZIN).mod = (user_config.ralt_as_lalt) ? KC_LALT : KC_RALT;
