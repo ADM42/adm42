@@ -1,4 +1,4 @@
-/* Copyright 2020-2024 Lorenzo Leonini
+/* Copyright 2020-2026 Lorenzo Leonini
  * SPDX-License-Identifier: GPL-2.0-only
  *
  * This program is free software: you can redistribute it and/or modify
@@ -319,6 +319,7 @@ static modtap modtaps[] = {
 };
 
 #define MODTAP(X) modtaps[X - FIRST_DUAL - 1]
+#define MODTAPS_COUNT (sizeof(modtaps) / sizeof(modtap))
 
 // For context/overlap logic
 static uint8_t current_taps = 0;
@@ -360,7 +361,7 @@ void clean_modtap_state(uint16_t key) {
 }
 
 void mod_used(bool shift, bool nonshift) {
-    for (int i = 0; i < sizeof(modtaps) / sizeof(modtap); i++) {
+    for (int i = 0; i < MODTAPS_COUNT; i++) {
         if (!modtaps[i].mod_used && modtaps[i].pressed == modtaps[i].mod) {
             uint16_t mod = modtaps[i].mod;
             if (
@@ -404,7 +405,7 @@ bool check_already_mod(uint16_t key) {
 
 bool check_opposite_mods(uint16_t key) {
     if (get_mods()) {
-        for (int i = 0; i < sizeof(modtaps) / sizeof(modtap); i++) {
+        for (int i = 0; i < MODTAPS_COUNT; i++) {
             if (MODTAP(key).mod != modtaps[i].mod && modtaps[i].pressed == modtaps[i].mod) {
                 if (MODTAP(key).left == !modtaps[i].left) {
                     return true;
@@ -1189,7 +1190,7 @@ void matrix_scan_user(void) {
                 rgb_matrix_sethsv_noeeprom(0, 0, 0);
                 reset_anim_duration = 40;
             } else {
-                rgb_matrix_sethsv_noeeprom(0, 0, 192);
+                rgb_matrix_sethsv_noeeprom(0, 0, 64);
                 reset_anim_duration = 20;
             }
         }
@@ -1207,8 +1208,15 @@ void matrix_scan_user(void) {
 }
 
 void keyboard_pre_init_kb(void) {
+    // Enable pull-ups on ISP pins
+    setPinInputHigh(B1);
+    setPinInputHigh(B2);
+    setPinInputHigh(B3);
     setPinOutput(QMK_LED);
     writePinHigh(QMK_LED);
+    // RGB LED PIN low at startup
+    setPinOutput(B7);
+    writePinLow(B7);
     rgb_set_val(0);
     rgb_matrix_update_pwm_buffers();
 }
