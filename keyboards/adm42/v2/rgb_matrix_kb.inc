@@ -13,7 +13,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+
 RGB_MATRIX_EFFECT(ADM42)
+
 #ifdef RGB_MATRIX_CUSTOM_EFFECT_IMPLS
 
 static const uint8_t positions[] = {
@@ -23,6 +25,7 @@ static const uint8_t positions[] = {
 };
 
 #define POS_COUNT ((uint8_t)sizeof(positions))
+//#define TRAIL_LENGTH POS_COUNT
 #define TRAIL_LENGTH (POS_COUNT + 5)
 #define PERIOD_MS_SLOW 2500UL
 #define PERIOD_MS_FAST 400UL
