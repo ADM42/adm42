@@ -13,15 +13,18 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#define VERSION "v2.61"
+#define VERSION "v2.7"
 
 #include QMK_KEYBOARD_H
 #include <version.h>
+#include "lib/lib8tion/lib8tion.h"
 
 #include <rgb_matrix.h>
 extern void rgb_matrix_update_pwm_buffers(void);
 
 #include <os_detection.h>
+
+#define IS_AZ_KEYCODE(code) ((code) >= KC_A && (code) <= KC_Z)
 
 // Base for timing computations
 static uint8_t tapping_term = 200;
@@ -31,7 +34,6 @@ static uint8_t dual_tap_duration = 25;
 // Startup animation
 // Highlights the fact that the keyboard is plugged in, even if no RGB effects are enabled by the user.
 // Can be very useful with magnetic cables to quickly confirm they are correctly connected.
-#define STARTUP_ALWAYS false
 #define STARTUP_MAX_VALUE 250
 #define STARTUP_MIN_VALUE 0
 typedef struct {    bool active;
@@ -89,6 +91,7 @@ static union {
         int compose_key: 2; // DISABLED, F19, R_ALT, R_ALT (+ L_ALT replacing R_ALT)
         bool ralt_as_lalt: 1;
         bool error_reduction: 1;
+        int rgb_val: 8;
     };
 } user_config;
 
@@ -247,6 +250,8 @@ void print_keyboard(const char *msg) {
     }
     register_mods(mod_state);
 }
+
+#define CYCLE_02(x) do { if ((x) >= 2) (x) = 0; else (x)++; } while (0)
 
 // Store the key currently pressed (if any) by each finger (except thumbs)
 static uint8_t finger_key[8] = {0};
@@ -668,8 +673,6 @@ void adm_info(void) {
     PK("\n" VERSION " | " __DATE__ " - " __TIME__ "\n");
 }
 
-static uint8_t rgb_val = 255;
-
 void rgb_set_val(uint8_t v) {
     rgb_matrix_sethsv_noeeprom(
         rgb_matrix_get_hue(),
@@ -677,45 +680,69 @@ void rgb_set_val(uint8_t v) {
         v);
 }
 
-static uint8_t rgb_mode = 0;
-static uint16_t rgb_mode_check_time = 0;
+static uint8_t rgb_direction = 0;
+static uint16_t rgb_adjust_time = 0;
+static uint8_t rgb_step = 6;
 
+#define RGB_STEP_DIVISOR 16
+
+void rgb_compute(uint8_t start, uint8_t end) {
+    uint8_t range;
+    if (start > end) {
+        range = start - end;
+        rgb_direction = 2;
+    } else {
+        range = end - start;
+        rgb_direction = 1;
+    }
+    rgb_step = range / RGB_STEP_DIVISOR;
+    if (rgb_step < 2) rgb_step = 2;
+}
 void rgb_up(void) {
-    rgb_mode = 1;
+    rgb_compute(0, user_config.rgb_val);
     rgb_set_val(1);
 }
+void rgb_down(void) {
+    rgb_compute(rgb_matrix_get_val(), 0);
+}
+void rgb_increase(void) {
+    if (rgb_direction == 0 && rgb_matrix_get_val() < user_config.rgb_val)
+        rgb_direction = 1;
+}
 
-#define RGB_RAMP_UP_STEP 6
-
-void rgb_mode_check(void) {
-
+void rgb_adjust(void) {
     if (over_ma) {
         over_ma = false;
-        uint8_t v = rgb_matrix_get_val();
-        if (v >= 4) {
-            rgb_mode = 0;
-            rgb_set_val(v - 4);
-            return;
-        }
+        rgb_set_val(rgb_matrix_get_val() - 1);
+        if (rgb_direction == 1) rgb_direction = 0;
     }
 
-    if (timer_elapsed(rgb_mode_check_time) > RGB_MATRIX_LED_FLUSH_LIMIT) {
-        rgb_mode_check_time = timer_read();
+    if (!rgb_direction) return;
+
+    if (timer_elapsed(rgb_adjust_time) > RGB_MATRIX_LED_FLUSH_LIMIT) {
+        rgb_adjust_time = timer_read();
 
         uint8_t v = rgb_matrix_get_val();
 
-        if (rgb_mode == 1) {
-            if (v >= rgb_val) {
-                rgb_mode = 0;
+        if (rgb_direction == 1) {
+            if (v >= user_config.rgb_val) {
+                rgb_direction = 0;
             } else {
-                if (v < rgb_val - RGB_RAMP_UP_STEP) {
-                    v += RGB_RAMP_UP_STEP;
+                if (v < user_config.rgb_val - rgb_step) {
+                    v += rgb_step;
                 } else {
-                    v = rgb_val;
-                    rgb_mode = 0;
+                    v = user_config.rgb_val;
+                    rgb_direction = 0;
                 }
                 rgb_set_val(v);
-                return;
+            }
+        } else {
+            if (v <= rgb_step) {
+                rgb_direction = 0;
+                rgb_matrix_disable();
+            } else {
+                v -= rgb_step;
+                rgb_set_val(v);
             }
         }
     }
@@ -728,7 +755,7 @@ bool rgb_wpm_enabled = false;
 uint8_t rgb_wpm_val = RGB_WPM_MIN;
 static uint16_t rgb_wpm_time = 0;
 
-void rgb_val_decrease(void) {
+void rgb_wpm_val_decrease(void) {
     if (timer_elapsed(rgb_wpm_time) > RGB_WPM_DEC_TIME) {
         rgb_wpm_time = timer_read();
         if (rgb_wpm_val > RGB_WPM_MIN) {
@@ -737,10 +764,8 @@ void rgb_val_decrease(void) {
         }
     }
 }
-void rgb_val_increase(void) {
-    if (rgb_wpm_val < 255 - RGB_WPM_INC) {
-        rgb_wpm_val += RGB_WPM_INC;
-    }
+void rgb_wpm_val_increase(void) {
+    rgb_wpm_val = qadd8(rgb_wpm_val, RGB_WPM_INC);
 }
 void rgb_wpm_enable(void) {
     if (!rgb_wpm_enabled) {
@@ -851,7 +876,7 @@ void config_compose(void) {
 }
 
 void config_pending(void) {
-    for (uint8_t i = 0; i < sizeof(modtaps) / sizeof(modtaps[0]); i++) {
+    for (uint8_t i = 0; i < MODTAPS_COUNT; i++) {
         modtaps[i].pending_mod = false;
     }
     if (user_config.pending_win == 1) MODTAP(LW_GRV).pending_mod = true;
@@ -896,7 +921,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     }
 
     if (record->event.pressed) {
-        if (rgb_wpm_enabled) rgb_val_increase();
+        if (rgb_wpm_enabled) rgb_wpm_val_increase();
         p_prev_keycode = p_current_keycode;
         p_current_keycode = keycode;
         p_prev_time = p_current_time;
@@ -1018,7 +1043,6 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
             reset_anim_count = 14;
             rgb_matrix_enable_noeeprom();
             rgb_matrix_mode_noeeprom(RGB_MATRIX_SOLID_COLOR);
-
             return false;
 
          case ADM_INF:
@@ -1032,48 +1056,28 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
             return false;
 
         case COMP_SEL:
-            if (user_config.compose_key == 2) {
-                user_config.compose_key = 0;
-            } else {
-                user_config.compose_key++;
-            }
+            CYCLE_02(user_config.compose_key);
             eeconfig_update_user(user_config.raw);
             config_compose();
             return false;
 
         case PEN_WIN:
-            if (user_config.pending_win == 2) {
-                user_config.pending_win = 0;
-            } else {
-                user_config.pending_win++;
-            }
+            CYCLE_02(user_config.pending_win);
             eeconfig_update_user(user_config.raw);
             config_pending();
             return false;
         case PEN_CTRL:
-            if (user_config.pending_ctrl == 2) {
-                user_config.pending_ctrl = 0;
-            } else {
-                user_config.pending_ctrl++;
-            }
+            CYCLE_02(user_config.pending_ctrl);
             eeconfig_update_user(user_config.raw);
             config_pending();
             return false;
         case PEN_ALT:
-            if (user_config.pending_alt == 2) {
-                user_config.pending_alt = 0;
-            } else {
-                user_config.pending_alt++;
-            }
+            CYCLE_02(user_config.pending_alt);
             eeconfig_update_user(user_config.raw);
             config_pending();
             return false;
         case PEN_SHFT:
-            if (user_config.pending_shift == 2) {
-                user_config.pending_shift = 0;
-            } else {
-                user_config.pending_shift++;
-            }
+            CYCLE_02(user_config.pending_shift);
             eeconfig_update_user(user_config.raw);
             config_pending();
             return false;
@@ -1086,36 +1090,47 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
          case RGB_WPM:
             rgb_wpm_toggle();
             return false;
-         case RGB_VAD:
-            if (rgb_val >= (2 * RGB_MATRIX_VAL_STEP)) {
-                rgb_val -= RGB_MATRIX_VAL_STEP;
+         case RGB_TOG:
+            if (rgb_matrix_is_enabled()) {
+                if (rgb_direction > 0)
+                    rgb_direction = (rgb_direction == 1) ? 2: 1;
+                else
+                    rgb_down();
             } else {
-                rgb_val = RGB_MATRIX_VAL_STEP;
+                rgb_matrix_enable();
+                rgb_up();
+            }
+            return false;
+        case RGB_VAD:
+        case RGB_VAI:
+            switch (keycode) {
+                case RGB_VAD:
+                    user_config.rgb_val = (user_config.rgb_val >= 2 * RGB_MATRIX_VAL_STEP)
+                        ? user_config.rgb_val - RGB_MATRIX_VAL_STEP
+                        : RGB_MATRIX_VAL_STEP; break;
+                case RGB_VAI:
+                    user_config.rgb_val = (user_config.rgb_val < 255 - RGB_MATRIX_VAL_STEP)
+                        ? user_config.rgb_val + RGB_MATRIX_VAL_STEP
+                        : 255; break;
             }
             rgb_wpm_disable();
-            rgb_set_val(rgb_val);
+            rgb_set_val(user_config.rgb_val);
+            eeconfig_update_user(user_config.raw);
             return false;
-         case RGB_VAI:
-            if (rgb_val < 255 - RGB_MATRIX_VAL_STEP) {
-                rgb_val += RGB_MATRIX_VAL_STEP;
-            } else {
-                rgb_val = 255;
-            }
-            rgb_wpm_disable();
-            rgb_set_val(rgb_val);
-            return false;
+
          case KGB_WHT:
-            rgb_matrix_sethsv(0, 0, rgb_val);
-            return false;
          case KGB_RED:
-            rgb_matrix_sethsv(0, 255, rgb_val);
-            return false;
          case KGB_GRN:
-            rgb_matrix_sethsv(85, 255, rgb_val);
-            return false;
          case KGB_BLU:
-            rgb_matrix_sethsv(169, 255, rgb_val);
+            switch (keycode) {
+                case KGB_WHT: rgb_matrix_sethsv(0, 0, rgb_matrix_get_val()); break;
+                case KGB_RED: rgb_matrix_sethsv(0, 255, rgb_matrix_get_val()); break;
+                case KGB_GRN: rgb_matrix_sethsv(85, 255, rgb_matrix_get_val()); break;
+                case KGB_BLU: rgb_matrix_sethsv(169, 255, rgb_matrix_get_val()); break;
+            }
+            rgb_increase();
             return false;
+
          case RGB_SAD:
          case RGB_SAI:
          case RGB_HUD:
@@ -1126,6 +1141,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
          case RGB_MOD:
          case RGB_RMOD:
             rgb_wpm_disable();
+            rgb_increase();
             return true;
          case RGB_SPD:
          case RGB_SPI:
@@ -1166,11 +1182,11 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
 }
 
 void matrix_scan_user(void) {
+
     if (startup.active) {
         if (!startup.running) {
             restore_rgb_state();
             startup.active = false;
-            rgb_up();
         } else {
             startup.value += startup.up ? 1 : -1;
             if (startup.value >= STARTUP_MAX_VALUE) startup.up = false;
@@ -1180,12 +1196,12 @@ void matrix_scan_user(void) {
     }
 
     if (reset && timer_elapsed(reset_anim_time) > reset_anim_duration) {
+        reset_anim_time = timer_read();
         if (reset_anim_count == 0) {
-            writePinLow(QMK_LED);
             reset_keyboard();
+        } else if (reset_anim_count == 1) {
+            rgb_matrix_disable_noeeprom();
         } else {
-            reset_anim_time = timer_read();
-            reset_anim_count--;
             if (reset_anim_count % 2 == 0) {
                 rgb_matrix_sethsv_noeeprom(0, 0, 0);
                 reset_anim_duration = 40;
@@ -1194,17 +1210,20 @@ void matrix_scan_user(void) {
                 reset_anim_duration = 20;
             }
         }
+        reset_anim_count--;
     }
+
     mt_taphold_check();
     retained_mod_check();
     delayed_check();
 
     if (!startup.active) {
-        rgb_mode_check();
+        rgb_adjust();
         if (rgb_wpm_enabled) {
-            rgb_val_decrease();
+            rgb_wpm_val_decrease();
         }
     }
+
 }
 
 void keyboard_pre_init_kb(void) {
@@ -1222,8 +1241,7 @@ void keyboard_pre_init_kb(void) {
 }
 
 void keyboard_post_init_kb(void) {
-
-    if (STARTUP_ALWAYS || !rgb_matrix_is_enabled()) {
+    if (!rgb_matrix_is_enabled()) {
         startup.active = true;
         startup.running = true;
         save_rgb_state();
@@ -1237,6 +1255,12 @@ void keyboard_post_init_kb(void) {
     MODTAP(RA_ZIN).mod = (user_config.ralt_as_lalt) ? KC_LALT : KC_RALT;
     config_compose();
     config_pending();
+
+    // Security, rgb_val should never be 0 (or close to 0)
+    if (user_config.rgb_val < RGB_MATRIX_VAL_STEP) {
+        user_config.rgb_val = RGB_MATRIX_MAXIMUM_BRIGHTNESS;
+        eeconfig_update_user(user_config.raw);
+    }
 }
 
 void eeconfig_init_user(void) {
@@ -1249,6 +1273,7 @@ void eeconfig_init_user(void) {
     user_config.compose_key = 0;
     user_config.ralt_as_lalt = false;
     user_config.error_reduction = 0;
+    user_config.rgb_val = RGB_MATRIX_MAXIMUM_BRIGHTNESS;
     eeconfig_update_user(user_config.raw);
 }
 
