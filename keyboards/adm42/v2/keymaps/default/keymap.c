@@ -31,6 +31,12 @@ static uint8_t tapping_term = 200;
 // Without a delay, some games may miss fast tap/release triggered by dual-keys
 static uint8_t dual_tap_duration = 25;
 
+// Auto-repeat consumer keycodes (volume/brightness) when hold
+static uint16_t consumer_time;
+static uint16_t consumer_last_kc = KC_NO;
+#define CONSUMER_REPEAT_DELAY 200
+#define CONSUMER_REPEAT_SPEED 150
+
 // Startup animation
 // Highlights the fact that the keyboard is plugged in, even if no RGB effects are enabled by the user.
 // Can be very useful with magnetic cables to quickly confirm they are correctly connected.
@@ -1017,6 +1023,17 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
             return false;
     }
 
+    if (keycode == KC_VOLD || keycode == KC_VOLU || keycode == KC_BRID || keycode == KC_BRIU) {
+        if (record->event.pressed) {
+            consumer_last_kc = keycode;
+            consumer_time = timer_read();
+            tap_code(keycode);
+        } else {
+            consumer_last_kc = KC_NO;
+        }
+        return false;
+    }
+
     if (record->event.pressed) {
         switch (keycode) {
          case DF_QWER:
@@ -1182,6 +1199,13 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
 }
 
 void matrix_scan_user(void) {
+
+    if (consumer_last_kc != KC_NO) {
+        if (timer_elapsed(consumer_time) > CONSUMER_REPEAT_DELAY) {
+            tap_code(consumer_last_kc);
+            consumer_time = timer_read() - (CONSUMER_REPEAT_DELAY - CONSUMER_REPEAT_SPEED);
+        }
+    }
 
     if (startup.active) {
         if (!startup.running) {
