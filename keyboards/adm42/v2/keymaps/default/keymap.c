@@ -29,7 +29,7 @@ extern void rgb_matrix_update_pwm_buffers(void);
 // Base for timing computations
 static uint8_t tapping_term = 200;
 // Without a delay, some games may miss fast tap/release triggered by dual-keys
-static uint8_t dual_tap_duration = 25;
+#define DUAL_TAP_CODE_DELAY 50
 
 // Auto-repeat consumer keycodes (volume/brightness) when hold
 static uint16_t consumer_time;
@@ -341,6 +341,9 @@ static uint16_t last_tap_release_time = 0;
 static uint16_t mt_taphold_key = 0;
 static uint16_t mt_taphold_time = 0;
 
+static uint16_t release_tap_kc = KC_NO;
+static uint16_t release_tap_time = 0;
+
 // Store the current and previous keycode (press)
 static uint16_t p_current_keycode;
 static uint16_t p_current_time;
@@ -485,7 +488,6 @@ void mt_register_tap(uint16_t key) {
         register_code(kc);
         last_tap_info(kc, MODTAP(key).time);
         mod_used(false, true);
-        wait_ms(dual_tap_duration);
 
         if (remove_shift) set_mods(mod_state);
 
@@ -554,10 +556,12 @@ void mt_release(uint16_t key) {
         mt_register_tap(key);
     }
     if (MODTAP(key).pressed) {
-        unregister_code(MODTAP(key).pressed);
         if (MODTAP(key).pressed != MODTAP(key).mod) {
             last_tap_release_info();
         }
+        if (release_tap_kc) unregister_code(release_tap_kc);
+        release_tap_kc = MODTAP(key).pressed;
+        release_tap_time = timer_read();
     }
     clean_modtap_state(key);
 }
@@ -860,7 +864,10 @@ void lt_release(uint16_t key) {
         layer_off(LAYERTAP(key).layer);
         if (key == p_current_keycode && timer_elapsed(p_current_time) <= tapping_term) {
             uint16_t kc = LAYERTAP(key).tap;
-            tap_code_delay(kc, dual_tap_duration);
+            register_code(kc);
+            if (release_tap_kc) unregister_code(release_tap_kc);
+            release_tap_kc = kc;
+            release_tap_time = timer_read();
             caps_word_stop();
             last_tap_info(kc, p_current_time);
             mod_used(true, true);
@@ -1199,6 +1206,11 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
 }
 
 void matrix_scan_user(void) {
+
+    if (release_tap_kc && timer_elapsed(release_tap_time) > DUAL_TAP_CODE_DELAY) {
+        unregister_code(release_tap_kc);
+        release_tap_kc = KC_NO;
+    }
 
     if (consumer_last_kc != KC_NO) {
         if (timer_elapsed(consumer_time) > CONSUMER_REPEAT_DELAY) {
