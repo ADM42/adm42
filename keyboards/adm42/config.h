@@ -1,4 +1,4 @@
-/* Copyright 2020-2024 Lorenzo Leonini
+/* Copyright 2020-2026 Lorenzo Leonini
  * SPDX-License-Identifier: GPL-2.0-only
  *
  * This program is free software: you can redistribute it and/or modify
@@ -18,6 +18,7 @@
 
 #define USB_POLLING_INTERVAL_MS 1
 #define TAP_CODE_DELAY 0
+#define MATRIX_IO_DELAY 5
 #define FORCE_NKRO
 #define NO_ACTION_TAPPING
 #define NO_ACTION_ONESHOT

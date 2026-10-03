@@ -541,10 +541,10 @@ const PROGMEM uchar shared_hid_report[] = {
     0x09, 0x80,             // Usage (System Control)
     0xA1, 0x01,             // Collection (Application)
     0x85, REPORT_ID_SYSTEM, //   Report ID
-    0x19, 0x01,             //   Usage Minimum (Pointer)
-    0x2A, 0xB7, 0x00,       //   Usage Maximum (System Display LCD Autoscale)
-    0x15, 0x01,             //   Logical Minimum
-    0x26, 0xB7, 0x00,       //   Logical Maximum
+    0x19, 0x81,             //   Usage Minimum (System Power Down)
+    0x29, 0x8F,             //   Usage Maximum (System Warm Restart)
+    0x16, 0x81, 0x00,       //   Logical Minimum
+    0x26, 0x8F, 0x00,       //   Logical Maximum
     0x95, 0x01,             //   Report Count (1)
     0x75, 0x10,             //   Report Size (16)
     0x81, 0x00,             //   Input (Data, Array, Absolute)

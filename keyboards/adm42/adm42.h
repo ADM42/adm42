@@ -1,4 +1,4 @@
-/* Copyright 2020-2024 Lorenzo Leonini
+/* Copyright 2020-2026 Lorenzo Leonini
  * SPDX-License-Identifier: GPL-2.0-only
  *
  * This program is free software: you can redistribute it and/or modify
